@@ -1,0 +1,110 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage[margin=0.5in]{geometry}
+\usepackage{hyperref}
+\title{Inference in TrueSkill}
+\date{30.5.2013}
+\author{Lukáš Žilka (lukas@zilka.me)}
+
+
+
+\begin{document}
+
+% SOME MACROS
+
+% normal distribution macro \Normal
+\newcommand{\Normal}[0]{\mathcal{N}}
+\newcommand{\dx}[1]{\mathrm{d}#1}
+
+% typesetting column vectors
+\newcount\colveccount
+\newcommand*\colvec[1]{
+        \global\colveccount#1
+        \begin{bmatrix}
+        \colvecnext
+}
+\def\colvecnext#1{
+        #1
+        \global\advance\colveccount-1
+        \ifnum\colveccount>0
+                \\
+                \expandafter\colvecnext
+        \else
+                \end{bmatrix}
+        \fi
+}
+
+\maketitle
+\abstract{We explain inference in the TrueSkill model in this article, with the aim of full understanding of the inference mechanisms. Inference is based on Expectation Propagation algorithm. This model and inference in it was originally proposed by~\cite{herbrich2007trueskill}}.
+
+
+\section{Introduction}
+It is boring to play against an opponent that is too bad (we knew that before), and with advent of online gaming, it started to be a problem for more people that kill their time behind TV hooked-up to Xbox, because they wanted to kill the time preferably in an entertaining way. On the Xbox platform, people play in teams against each other. The result of each game is a ranking of the teams (i.e. we know the winner, looser and everything in between). The results of the matches are recorded. The question is: based on the recorded games, how to assign a score to each player, that represents the player's skill, so that we can rank the players, and then match ones with a similar skill-score. This score is called TrueSkill and this article will be about its inference, using a statistical model.
+
+
+\section{Model}
+The result of a game in the TrueSkill model is modelled in the following way:
+\begin{align}
+\forall i \in Players: s_i \sim \Normal(\mu_i, \sigma^2_i) \\
+\forall i \in Players: p_i \sim \Normal(s_i, \beta^2) \\
+\forall k \in Teams: t_k \sim I(t_k=\sum_{i \in Team(k)} p_i) \\
+p(\mathbf{r}|\{t_1, .., t_k\}) = p(t_{r_{(1)}}>t_{r_{(2)}}> ... > t_{r_{(k)}}) \\
+% \forall n \in 1..|Teams| - 1: d_n \sim
+% truncated\Normal(t_n - t_{n+1}; \sum_{i \in Team(n) \cup Team(n+1)}(\sigma^2_i+\beta)) \\
+% \begin{cases}
+% \text{tie:} & \text{zero bellow -$\epsilon$ and above $\epsilon$} \\
+% \text{not tie:} & \text{zero bellow $\epsilon$}
+% \end{cases}
+\end{align}
+
+\section{Inference}
+Inference in TrueSkill model is based on the Expectation Propagation~\cite{minka2001expectation} algorithm, that is a generalization of the sum-product algorithm~\cite{kschischang2001factor}.
+
+\section{Take-home Message}
+
+Gaussians rule! They are very powerful because you just need 2 parameters to represent the whole distribution, and consequentially you just update these two parameters when you need to update the distribution. For example, when you multiply/divide two Gausssians, the result is also a Gaussian:
+
+\begin{itemize}
+  \item Product of two Gaussian distributions over the same variable is a Gaussian distribution.
+    \begin{equation}
+      \Normal(x; \mu_1, \sigma_1^2) \cdot \Normal(x; \mu_2, \sigma_2^2) = \Normal(x; \mu, \sigma^2)
+    \end{equation}
+
+  \item Product of two Gaussian distributions over different variables is a multinomial Gaussian distribution with symmetric covariance matrix:
+
+  \begin{equation}
+      \Normal(x; \mu_1, \sigma_1^2) \cdot \Normal(y; \mu_2, \sigma_2^2) = \Normal(\colvec{2}{x}{y}; \colvec{2}{\mu_1}{\mu_2}, \begin{bmatrix} \sigma_1^2 & 0 \\ 0 & \sigma_2^2 \\ \end{bmatrix})
+    \end{equation}
+
+  \item If two random variables are from Gaussians, the sum of those variables is also a Gaussian.
+    \begin{align}
+        X     & \sim \Normal(x; \mu_1, \sigma_1^2) \\
+        Y     & \sim \Normal(x; \mu_2, \sigma_2^2) \\
+        X + Y & \sim \Normal(x; \mu_1 + \mu_2, \sigma_1^2 + \sigma_2^2) \\
+    \end{align}
+
+  \item Sum of two Gaussian distributions is NOT a Gaussian.
+    \begin{align}
+      \Normal(x; \mu_1, \sigma_1) + \Normal(x; \mu_2, \sigma_2) \not= \Normal(x; \cdot)
+    \end{align}
+
+  \item Integration of two Gaussian that are over different variables, where one ot them is the mean parameter for the other, can be turned into a convolution, and the result is again a Gaussian. Convolution is an integral of the form $\int f(t-x)g(x)\dx{t}$.
+    \begin{align}
+      p(x) = \int \Normal(x; \mu_0, \sigma^2_0) \Normal(y; x, \sigma^2) \dx{x} =
+    \end{align}
+    Following the equation for the Gaussian distribution, we can take out the x from the mean of the second Gaussian and put it to its argument.
+    \begin{align}
+      = \int \Normal(x; \mu_0, \sigma^2_0) \Normal(y - x; 0, \sigma^2) \dx{x} \\
+    \end{align}
+    Now the form somehow resembles the form of convolution given above: $\int f(x) g(y - x)\dx{x}$, and consequentially, we can use the result for Gaussian convolution. Its derivation can be found in~\cite{math_behind_trueskill}.
+    \begin{align}
+      = \Normal(x; \mu_0, \sigma^2_0 + \sigma^2) \\
+    \end{align}
+\end{itemize}
+
+\section{References}
+\bibliographystyle{apalike}
+\bibliography{mybib}
+
+\end{document}
