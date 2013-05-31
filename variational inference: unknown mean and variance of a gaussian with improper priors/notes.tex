@@ -1,0 +1,226 @@
+\documentclass[11pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{bm}
+\usepackage[T1]{fontenc}
+
+\title{Variational Inference: Unknown mean and variance of a Gaussian}
+\date{}
+\begin{document}
+\maketitle
+
+Máme data $\mathcal{D} = \{x_1, \dots, x_N\}$, která jsou nezávislá a pochází z
+normálního rozdělení s neznámou střední hodnotou a přesností.
+
+Log likelihood parametrů $\mu, \tau$ je
+\begin{align}
+p(\mathcal{D} \mid \mu, \tau) &=
+    \prod_{i=1}^N \sqrt{\frac{\tau}{2\pi}}
+              \exp \left(\frac{-\tau(x_i - \mu)^2}{2}\right)
+\\
+\log p(\mathcal{D} \mid \mu, \tau) &=
+    \sum_{i=1}^N
+        \frac{1}{2} \log \frac{\tau}{2\pi} - \frac{\tau(x_i - \mu)^2}{2}
+\\
+&=
+    \frac{N}{2} \log \tau
+    - \sum_{i=1}^N \frac{\tau (x_i - \mu)^2}{2}
+    + C
+\\
+&=
+    \frac{N}{2} \log \tau
+    - \frac{\tau}{2}
+    \left(
+        N(\mu - \bar x)^2
+        + \sum_{i=1}^N (x_i - \bar x)^2
+    \right)
+    + C
+\end{align}
+
+Pravděpodobnostní model reprezentuje sdruženou pravděpodobnost $p(\bm{X},
+\bm{Z})$ a my potřebujeme nalézt aproximaci aposteriorní distribuce $p(\bm{Z}
+\mid \bm{X})$ a také pravděpodobnost pozorování $p(\bm{X})$.
+
+\begin{align}
+\log p(\bm{X}) &=
+    \mathcal{L}(q) + \mathrm{KL}(q \| p)
+\\
+\mathcal{L}(q) &=
+    \int q(\bm{Z}) \log
+        \left(
+            \frac{p(\bm{X}, \bm{Z})}
+                 {q(\bm{Z})}
+        \right) \mathrm{d}\bm{Z}
+\\
+\mathrm{KL}(q \| p) &=
+    - \int q(\bm{Z}) \log
+        \left(
+            \frac{p(\bm{Z} \mid \bm{X})}
+                 {q(\bm{Z})}
+        \right) \mathrm{d}\bm{Z}
+\end{align}
+
+Aposteriorní distribuci faktorizujeme
+\begin{equation}
+q(\bm{Z}) = \prod_i^M q_i(\bm{Z}_i)
+\end{equation}
+
+Likelihood s faktorizovanou distribucí pak bude
+\begin{align}
+\mathcal{L}(q) &=
+    \int \left( \prod_i q_i\right)
+    \left(
+        \log p(\bm{X}, \bm{Z})
+        - \sum_i \log q_i
+    \right) \mathrm{d}\bm{Z}
+\\
+&= \int q_j
+    \left(
+        \int \log p(\bm{X}, \bm{Z})
+        \prod_{i \ne j} q_i ~
+            \mathrm{d}\bm{Z}_i
+    \right) \mathrm{d}\bm{Z}_j -
+\\
+&- \int q_j \log q_j ~ \mathrm{d}\bm{Z}_j + C
+\\
+&= \int q_j
+    \log \tilde{p}(\bm{X}, \bm{Z}_j)
+    \mathrm{d}\bm{Z}_j -
+    \int q_j \log q_j \mathrm{d}\bm{Z}_j
+    + C \label{eq:lkl}
+\\
+\log \tilde{p}(\bm{X}, \bm{Z}_j) &= 
+    \mathbb{E}_{i \ne j} [ \log p(\bm{X}, \bm{Z})] + C
+\end{align}
+
+Předpokládejme, že všechny $\{q_{i \ne j}\}$ jsou zafixované a maximizujeme
+$\mathcal{L}(q)$ pro distribuci $q_j(\bm{Z}_j)$.
+To provedeme jednoduše když vezmeme v úvahu, že rovnice (\ref{eq:lkl}) je
+negativní Kullback-Leibler divergence mezi $q_j(\bm{Z}_j)$ a $\tilde{p}(\bm{X},
+\bm{Z}_j)$. Takže maximalizace (\ref{eq:lkl}) je to samé jako minimalizace KL
+divergence a minimum nastane když $q_j(\bm{Z}_j) = \tilde{p}(\bm{X},
+\bm{Z}_j)$. Obecná formule pro optimální řešení $q_j^*(\bm{Z}_j)$ tedy bude
+
+\begin{equation}
+\log q_j^*(\bm{Z}_j) =
+    \mathbb{E}_{i \ne j} [ \log p(\bm{X}, \bm{Z})] + C
+\label{eq:truelog}
+\end{equation}
+
+Nyní k příkladu, aposterioriní pravděpodobnost budeme aproximovat faktory:
+\begin{equation}
+    q(\mu, \tau) = q_\mu (\mu) q_\tau (\tau)
+\end{equation}
+
+Optimální faktory získáme z rovnice (\ref{eq:truelog}):
+
+\begin{align}
+\log q_\mu^*(\mu) &=
+    \mathbb{E}_\tau [
+        \log p(\mathcal{D} \mid \mu, \tau)
+        + \log (p(\mu))
+        + \log (p(\tau))
+    ]
+\\
+&= \mathbb{E}_\tau \bigg[
+    \frac{N}{2} \log \tau
+    - \frac{\tau}{2}
+    \Big(
+        N(\mu - \bar x)^2
+        + \sum_i^N (x_i - \bar x)^2
+    \Big) +
+\\
+& + \log \frac{1}{\sigma_\mu}
+    + \log \frac{1}{\tau}
+    + C
+    \bigg]
+\nonumber
+\\
+&= -\frac{N\mathbb{E}_\tau [\tau]}
+         {2}
+    (\mu - \bar{x})^2 + C
+\end{align}
+
+Nyní už je vidět, že $q_\mu^*(\mu)$ je ve formě normálního rozdělení
+\begin{align}
+q_\mu^*(\mu) &= N(\mu \mid \bar x, \lambda^{-1})
+\\
+\lambda &= N\mathbb{E}_\tau[\tau]
+\end{align}
+
+Pro $q_\tau^*(\tau)$ budeme postupovat obdobně:
+\begin{align}
+\log q_\tau^*(\tau) &= 
+	\mathbb{E}_\mu [
+		\log p(\mathcal{D} \mid \mu, \tau) 
+		+ \log p(\mu)
+		+ \log p(\tau)
+	]
+\\
+&= \mathbb{E}_\mu \bigg[
+	\frac{N}{2} \log(\tau)
+	- \frac{\tau}{2} \Big(
+    \sum_{i=1}^N (x_i - \mu)^2
+	\Big) +
+\\
+& 	+ \log \frac{1}{\sigma_\mu}
+	+ \log \frac{1}{\tau}
+	+ C
+	\bigg]
+\nonumber
+\\
+&= \frac{N-2}{2} \log(\tau)
+	- \frac{\tau}{2} \Big(
+		\mathbb{E}_\mu \Big[
+            \sum_{i=1}^N (x_i^2 - 2 x_i \mu + \mu^2)
+        \Big]
+	\Big)
+	+ C
+\\
+&= \frac{N-2}{2} \log(\tau)
+	- \frac{\tau}{2} \Big(
+    \sum_{i=1}^N x_i^2 - 2 \mathbb{E}_\mu[\mu] \sum_{i=1}^N x_i + N
+    \mathbb{E}_\mu[\mu^2])
+	\Big)
+	+ C
+\end{align}
+
+Pokud výsledný tvar srovnáme s předpisem pro Gamma rozložení
+\begin{equation}
+Gamma(\tau \mid a, b) = b^2 \frac{1}{\Gamma(a)} \tau^{a-1} \exp(-b\tau)
+\end{equation}
+s parametry
+\begin{align}
+a &= \frac{N}{2}
+\\
+b &= \frac{1}{2} \Big(
+    \sum_{i=1}^N x_i^2 - 2 \mathbb{E}_\mu[\mu] \sum_{i=1}^N x_i + N
+    \mathbb{E}_\mu[\mu^2])
+	\Big)
+\end{align}
+
+Nyní můžeme oba kroky střídat a iterovat dokud nedojdeme k pevnému bodu. Při
+iteraci využijeme toho, že pro nalezení nové hodnoty $q_\mu(\mu)$ nám stačí
+znát střední hodnotu $\tau$, což pro Gamma rozdělení není problém. Pro nalezení
+nové hodnoty $q_\tau(\tau)$ nám zase stačí znát $\mathbb{E}_\mu[\mu]$ a
+$\mathbb{E}_\mu[\mu^2]$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\end{document}
