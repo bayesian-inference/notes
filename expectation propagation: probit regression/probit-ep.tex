@@ -1,0 +1,206 @@
+\documentclass[10pt,a4paper,notitlepage]{article}
+
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+
+\title{Expectation Propagation for a Probit Regression Model}
+\author{Ondřej Dušek}
+
+\begin{document}
+
+% Math operator defines
+
+\def\ve#1{\mathbf{#1}}
+\def\R{\mathbb{R}}
+\def\E{\mathbb{E}}
+\def\d{\,\mathrm{d}}
+\def\N{\mathcal{N}}
+\def\eqrel#1{\stackrel{\mathrm{#1}}{=}}
+\def\cavity#1#2{#1^{\setminus #2}}
+\def\new{\mathrm{new}}
+
+% Title
+
+\maketitle
+
+% Tweaking the style 
+
+\renewcommand{\baselinestretch}{1.2}
+\setlength{\parskip}{8pt plus 1pt minus 2pt}
+
+% Contents
+
+\section{The probit model}
+
+Suppose we have independent data points ${\ve{x}}_{i=1}^n$, each consisting of $d$ features, thus building a matrix $X\in \R^{n\times d}$. Each data point $\ve{x}_i$ has a label $y_i \in \{-1,1\}, i=1\dots n$, which gives a vector of labels $\ve{y}$.
+
+We want to model this data using a \emph{probit model}: $P(y_i|\ve{x}_i, \ve{w}) = \Phi(y_i\cdot \ve{w}^T\ve{x}_i)$. $\Phi$ denotes a standard Gaussian cumulative distribution function, i. e. $\Phi(z) = \int_{-\infty}^{z} \frac{1}{\sqrt{2\pi}} e^{-\frac{1}{2}t^2} \d t$.
+
+In order to obtain a posterior estimate of the unknown parameters $\ve{w}$ (``weights vector'') given our data $\{X, \ve{y}\}$, we use the standard Bayesian estimation scheme:
+
+\begin{equation}
+\mbox{posterior} = \frac{\mbox{prior}\cdot\mbox{likelihood}}{\mbox{normalization}}
+\end{equation}
+
+Since we can choose our own prior on $\ve{w}$, we take the path of least resistance. We select a Gaussian prior on $\ve{w}$ with a zero mean and known variance $v_0$ and assume independence of $w_j$ in the individual dimensions:
+\begin{equation}
+P(\ve{w}) \eqrel{def} \N(\ve{w}|\ve{0}, I\cdot v_0) \eqrel{indep} \prod_{j=1}^d \N(w_j|0,v_0)
+\end{equation}
+
+The form of likelihood is given by the probit model (remember that the data points are assumed to be independent, identically distributed):
+\begin{equation}
+P(\ve{y}|X, \ve{w}) \eqrel{iid} \prod_{i=1}^n P(y_i|\ve{x}_i, \ve{w}) = \prod_{i=1}^n \Phi(y_i\cdot \ve{w}^T\ve{x}_i)
+\end{equation}
+
+The posterior then has the following form (where $Z$ is a normalization constant):
+\begin{equation}\label{eq:epp_posterior}
+P(\ve{w}|X, \ve{y}) = \frac{1}{Z} \cdot P(\ve{w}) \cdot \prod_{i=1}^n P(y_i|\ve{x}_i, \ve{w})
+\end{equation}
+
+Computing the posterior in this form is not tractable due to the product of probits in the likelihood. Therefore, we must approximate the posterior by a simpler distribution. We can use the Expectation Propagation (EP) algorithm to do that.
+
+\section{Expectation propagation algorithm}\label{sec:ep_theory}
+
+The EP algorithm assumes that we are given a joint distribution $P(X, \ve{y}, \ve{w})$ over observed data and unknown parameters, i.e.\ $\mbox{likelihood}\cdot\mbox{prior}$, in the form of a product of factors:
+\begin{equation}
+P(X, \ve{y}, \ve{w}) = \prod_{i} f_i(\ve{w})
+\end{equation}
+
+The EP then tries to find an approximation $q(\ve{w})$ of the true posterior distribution $p(\ve{w}) \eqrel{def} P(\ve{w}|X,\ve{y})$ by minimizing the Kullback-Leibler (KL) Divergence: 
+\begin{equation}
+KL(p(\ve{w})||q(\ve{w})) = \int_{-\infty}^{\infty} p(\ve{w}) \log\left(\frac{p(\ve{w})}{q(\ve{w})}\right)\d\ve{w}
+\end{equation} 
+It does so by gradually refining one of the factors $\hat{f}_i(\ve{w}), i=1\dots n$ while keeping rest of $q(\ve{w})$ fixed. This is repeated until convergence (i.e.\ until the refined factors are undistinguishable from the original factors) and requires several passes over all factors in general.
+
+The general flow of the algorithm looks like this:
+\begin{enumerate}
+  \item Select a form of a distribution from the \emph{exponential family} for your approximate posterior $q(\ve{w})$. It must be possible to express it as a product of approximate factors $\hat{f}_i(\ve{w})$, each approximating a factor $f_i(\ve{w})$ of the true posterior. We use the exponential family since it works nicely with KL divergence minimization (see below).
+  \item Initialize the approximate factors to some (arbitrary, but reasonable) values. You now have the first approximation of the posterior.
+  \item In several passes, select one factor $\hat{f}_i(\ve{w})$ to refine; keep the rest of the factors intact:
+  \begin{enumerate} 
+    \item Take factor $\hat{f}_i(\ve{w})$ out of the current posterior approximation $q(\ve{w})$ to create a \emph{cavity distribution} $\cavity{q}{i}(\ve{w})$.
+    \item Now create a new approximation $\hat{f}_i^{\new}(\ve{w})$ of the true factor $f_i(\ve{w})$ by minimizing: 
+\begin{equation}\label{eq:minim_kl}
+KL(f_i(\ve{w})\cdot \cavity{q}{i}(\ve{w})||\hat{f}_i(\ve{w})\cdot \cavity{q}{i}(\ve{w}))
+\end{equation} 
+Note that we are not minimizing the distance to the true posterior, but to a distribution composed of the exact factor $f_i(\ve{w})$ and approximations of the rest, i.e.\ we are approaching the true factor in the context of our current approximation.
+
+The exponential family is very convenient here since we may use \emph{moment matching}: we just compute the \emph{sufficient statistics}\footnote{Sufficient statistics is a set of moments that uniquely define a distribution from the exponential family. For Gaussians, it is mean and variance.} of the target distribution $f_i(\ve{w})\cdot \cavity{q}{i}(\ve{w})$ and use them for our approximation $\hat{f}_i(\ve{w})\cdot \cavity{q}{i}(\ve{w})$. If an approximation from the exponential family has the same sufficient statistics as the target distribution, it must have the lowest KL divergence. 
+    \item Now replace your old posterior approximation with $q^{\new}(\ve{w}) \propto \hat{f}_i^{\new}(\ve{w})\cdot \cavity{q}{i}(\ve{w})$.
+  \end{enumerate}
+  \item Repeat previous step until convergence.
+\end{enumerate}
+
+\section{Form of the approximation in the probit model}
+
+We now return to our probit model. We denote our posterior distribution on weights (\ref{eq:epp_posterior}) as $p(\ve{w})$ and its individual factors as $f_i(\ve{w}), i=0\dots n$ (i.e.\ some functions of $\ve{w}$):
+\begin{eqnarray}
+\label{eq:epp_factors0}
+f_0(\ve{w}) & \eqrel{def} & P(\ve{w}) \\ 
+\label{eq:epp_factorsi}
+f_i(\ve{w}) & \eqrel{def} & P(y_i|\ve{x}_i, \ve{w}) \quad i=1\dots n
+\end{eqnarray}
+Note that $f_0$ corresponds to the prior and $f_i, i=1\dots n$ correspond to the individual data points.
+
+We now try to find an approximation $q(\ve{w})$ of $p(\ve{w})$. We choose the shape of $q(\ve{w})$ ourselves, the only requirement is that it has to be in the exponential family (see Section \ref{sec:ep_theory}). A Gaussian with independent dimensions is the best way to keep things simple:
+\begin{equation}\label{eq:q_def}
+q(\ve{w}) \eqrel{def} \N(\ve{w}|\ve{m}, I\cdot\ve{v}) \eqrel{indep} \prod_{j=1}^d \N(w_j|m_j,v_j)
+\end{equation}
+Note that $\ve{m} = \{m_j\}_{j=1}^d$ and $\ve{v}=\{v_j\}_{j=1}^d$ denote means and variances in the individual dimensions.
+
+We also want our $q(\ve{w})$ to be a product of factors of a similar form to (\ref{eq:epp_factors0},\ref{eq:epp_factorsi}), but simpler. We thus denote:
+\begin{equation}
+q(w) \eqrel{def} \frac{1}{Z} \prod_{i=0}^n \hat{f}_i(w)
+\end{equation}
+Where:
+\begin{eqnarray}
+\hat{f}_0(\ve{w}) & \eqrel{def} & f_0(\ve{w}) = P(\ve{w})  \\ \label{eq:fhat_def} 
+\hat{f}_i(\ve{w}) & \eqrel{def} & \N(\ve{w}|\ve{m}_i,I\cdot\ve{v}_i)\cdot \ve{s}_i = \prod_{j=1}^d\N(\ve{w}_j|\ve{m}_{ij},I\cdot\ve{v}_{ij})\cdot s_{ij} \quad i=1\dots n
+\end{eqnarray}
+I.e.\ we use the exact prior (since it is a plain Gaussian) and choose the other factors $\hat{f}_i(\ve{w}), i=1\dots n$ as unnormalized Gaussians with independent dimensions. We know that the original factors $f_i(\ve{w}), i=1\dots n$ are not normalized with respect to $\ve{w}$ (since they are normalized with respect to $y_i$), but want them to have a simple form. We therefore use a Gaussian multiplied by a ``de-normalization constant'' $s_{ij}$.
+
+We now aim to find $q(\ve{w})$ with such parameters $\ve{m}, \ve{v}$ that it is as close to $p(\ve{w})$ as possible. This is the task of the EP algorithm.
+
+\section{EP initialization step}
+
+We initialize our approximation $q(\ve{w})$ by setting $\hat{f}_0(\ve{w})$ to the prior and $\hat{f}_i(\ve{w})$ to uniform distributions.\footnote{Or as close to uniform distributions as we can get in practice since $\hat{f}_i(\ve{w})$ are assumed to be Gaussian.} The parameters of the approximate factors then look as follows:
+\begin{eqnarray}
+m_{0j} := 0, & v_{0j} := v_0  & \quad j=1\dots d \\ 
+m_{ij} := 0, & v_{ij} := \infty & \quad j=1\dots d, \quad i = 1\dots n
+\end{eqnarray}
+Now our posterior approximation is in fact equal to our prior (if we view it as $\mbox{prior}\cdot\prod_{i=1}^n\mbox{uniform}$).
+
+\section{Refining one factor}
+
+We select an approximate factor $\hat{f}_i(\ve{w})$ to be refined. The order of factors selected for refining is arbitrary and all factors should be refined multiple times. 
+
+\subsection{Computing the cavity distribution}
+
+First, we compute the \emph{cavity distribution} from our current posterior approximation $q(\ve{w})$ and the current approximate factor $\hat{f}_i(\ve{w})$:
+\begin{equation}
+\cavity{q}{i}(\ve{w}) = \frac{q(\ve{w})}{\hat{f}_i(\ve{w})}
+\end{equation}
+Since $q(\ve{w})$ and $\hat{f}_i(\ve{w})$ are both Gaussian from (\ref{eq:q_def}, \ref{eq:fhat_def}), we can use the formulas for Gaussian identities to obtain an (unnormalized) Gaussian shape of $\cavity{q}{i}(\ve{w})$:
+\begin{equation}
+\cavity{q}{i}(\ve{w}) \propto \N(\ve{w}|\cavity{\ve{m}}{i}, \cavity{\ve{v}}{i}) \eqrel{indep} \prod_{j=1}^d \N(w_j|\cavity{m_j}{i}, \cavity{v_j}{i})
+\end{equation}
+Where:
+\begin{eqnarray}
+\cavity{v_j}{i} & = & (v_j^{-1} - v_{ij}^{-1})^{-1} \\
+\cavity{m_j}{i} & = & \cavity{v_j}{i}(v_j^{-1}m_j - v_{ij}^{-1}m_{ij})
+\end{eqnarray}
+Note that $m_{ij},v_{ij}$ refer to the current approximation of $\hat{f}_i(\ve{w})$ and $m_j, v_j$ refer to the current approximation of $q(\ve{w})$.
+
+\subsection{Minimizing KL-divergence}
+
+Having fixed our cavity distribution, we want to minimize the KL divergence of our factor approximation in the context of the cavity distribution (\ref{eq:minim_kl}) to obtain a new, better approximation of the posterior, $q^{\new}$. We have:
+\begin{equation}\label{eq:minim_kl_pract}
+q^{\new}(\ve{w}) = \arg \min_{q'\propto \hat{f}_i(w)\cavity{q}{i}(\ve{w})} KL\left(\frac{1}{Z_i} f_i(\ve{w}) \cavity{q}{i}(\ve{w})\ ||\ q'\right)
+\end{equation}
+The KL-divergence for distributions in the exponential family is minimized by moment matching: setting the \emph{sufficient statistics}, i.e.\ mean and variance in our case, equal to those of the distribution we want to approximate.
+
+To do this, we will use the following clever formulas (from José's slide 15) for the moments of a Gaussian multiplied by some arbitrary factor. Given a distribution $r(\ve{x})$ in the following form:
+\begin{equation}
+r(\ve{x}) = \frac{1}{Z} t(\ve{x}) \N(\ve{x}|\mu,\Sigma)\mbox{ and }Z = \int t(\ve{x}) \N(x|\mu, \Sigma) \d \ve{x}
+\end{equation}
+We can express its mean and variance as:
+\begin{eqnarray} \label{eq:clever_mean}
+\E_r[\ve{x}] & = & \mu + \Sigma\cdot\frac{\partial \log Z}{\partial \mu} \\ \label{eq:clever_variance}
+\E_r[\ve{x}\ve{x}^T] - E_r[\ve{x}](E_r[\ve{x}])^T& = & \Sigma - \Sigma\cdot \left(\frac{\partial \log Z}{\partial \mu} \left(\frac{\partial \log Z}{\partial \mu}\right)^T - 2\frac{\partial \log Z}{\partial \Sigma} \right)\cdot \Sigma
+\end{eqnarray}
+
+As the clever formulas are not clever enough to rid us of the normalizing constant, we must first compute $Z_i$:
+\begin{eqnarray}
+Z_i & = & \int f_i(\ve{w}) \cavity{q}{i}(\ve{w})\d \ve{w} = \int P(y_i|\ve{x}_i, \ve{w}) \cavity{q}{i}(\ve{w})\d\ve{w} = \int \Phi(y_i\cdot \ve{w}^T \ve{x}_i) \prod_{i=1}^d\N(w_j|\cavity{m_j}{i},\cavity{v_j}{i}) \d\ve{w} \\ \label{eq:zi}
+& = & \Phi\left( \frac{y_i\cdot \sum_{j=1}^d \cavity{m_j}{i} x_{ij} }{\sqrt{\sum_{j=1}^d \cavity{v_j}{i}x_{ij}^2 + 1}} \right)
+\end{eqnarray}
+If you know how we got the exact result, let me know. I don't. José just said it's relatively simple.
+
+Now we can just fill in our values into (\ref{eq:clever_mean}, \ref{eq:clever_variance}), using the value of $Z_i$ computed in (\ref{eq:zi}). We obtain the mean and the variance of the new approximate posterior $q^{\new}(\ve{w})$:
+
+\begin{eqnarray}
+m_j^{\new} & = & \cavity{m_j}{i} + \cavity{v_j}{i}\cdot \frac{\partial \log Z_i}{\partial \cavity{m_j}{i}} \\
+v_j^{\new} & = & \cavity{v_j}{i} - \left(\cavity{v_j}{i}\right)^2\left(\left(\frac{\partial \log Z_i}{\partial \cavity{m_j}{i}}\right)^2 - 2 \frac{\partial \log Z_i}{\partial \cavity{v_j}{i}} \right)
+\end{eqnarray}
+
+\subsection{Obtaining the new approximate factor}
+
+We now have the new approximate posterior $q^{\new}(\ve{w})$ and need to obtain our new approximate factor $\hat{f}_i^{\new}(\ve{w})$ for later use. We use an equation obtained from (\ref{eq:minim_kl_pract}) by forcing $Z_i$ as our new normalization constant:
+\begin{eqnarray}
+q^{\new}(\ve{w}) & := & \frac{1}{Z_i}\hat{f}_i (\ve{w}) \cavity{q}{i}(\ve{w}) \\
+\hat{f}_i(\ve{w}) & = & Z_i\frac{q^{\new}(\ve{w})}{\cavity{q}{i}(\ve{w})}
+\end{eqnarray}
+
+The parameters $m_{ij}^{\new}, v_{ij}^{\new}, s_{ij}^{\new}$ are obtained from the Gaussian identities formulas:
+\begin{eqnarray}
+v_{ij}^{\new} & = & \left( v_j^{-1} - \left( \cavity{v_j}{i} \right)^{-1} \right)^{-1} \\
+m_{ij}^{\new} & = & v_{ij}^{\new}\cdot \left( m_j v_j^{-1} - \cavity{m_j}{i} \left( \cavity{v_j}{i} \right)^{-1} \right) \\
+s_{ij}^{\new} & = & Z_i \cdot C_j \mbox{, where} \\ & & C_j = \sqrt{\frac{v_{ij}^{\new}\cavity{v_j}{i}}{\left( 2\pi \right)^d v_j }}\exp\left( -\frac{1}{2}\left( m_j^2 v_j^{-1} - \left(\cavity{m_j}{i}\right)^2\left(\cavity{v_j}{i}\right)^{-1} - \left(m_{ij}^{\new}\right)^2 \left(v_{ij}^{\new}\right)^{-1} \right) \right)
+\end{eqnarray}
+
+We can now use $\hat{f}_i^{\new}(\ve{w})$ and $q^{\new}(\ve{w})$ in the next iterations.
+
+\end{document}
