@@ -1,0 +1,877 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+
+\usepackage[bookmarks=true,colorlinks=false,pdftex]{hyperref}
+\hypersetup{
+	pdftitle={Expectation Propagation for the Clutter Problem},
+	pdfauthor={Matěj Korvas},
+	pdfborder={0 0 0}
+}
+
+\usepackage{fullpage}
+\usepackage{times}
+\usepackage{url}
+\usepackage{amsfonts}
+\usepackage{latexsym}
+\usepackage{graphicx}
+\usepackage{mathtools}
+\usepackage{colonequals}
+\usepackage{caption}
+% \usepackage{subcaption}
+\usepackage{xcolor}
+% \usepackage{tikz}
+% \usetikzlibrary{chains,patterns}
+
+\newcommand{\surf}[1]{\textit{#1}}
+\newcommand{\term}[1]{\textit{#1}}
+\newcommand{\vek}[1]{\ensuremath{\mathbf{#1}}}
+\newcommand{\kve}{\ensuremath{\mathcal{Q}}}
+\newcommand{\byd}{\ensuremath{\mathrm{d}}}
+\newcommand{\KL}[2]{\ensuremath{\text{KL}(#1\:||\:#2)}}
+\newcommand{\bern}{\ensuremath{\text{Bern}}}
+\newcommand{\norm}{\ensuremath{\:\mathcal{N}}}
+\newcommand{\unity}{\ensuremath{\mathbf{I}}}
+\newcommand{\ee}{\ensuremath{\mathbb{E}}}
+\newcommand{\real}{\ensuremath{\mathbb{R}}}
+\newcommand{\iid}{\ensuremath{\stackrel{\text{i.i.d.}}{\sim}}}
+\newcommand{\ind}{\ensuremath{\stackrel{\text{ind.}}{\sim}}}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\newcommand{\intr}{\ensuremath{\int_{\real^d}}}
+\newcommand{\intrc}{\ensuremath{\int_{\rlap{\scriptsize$\real^d$}}\:}}
+\newcommand{\intrcc}{\ensuremath{\int_{\rlap{\scriptsize$\real^d$}}}}
+
+\newcommand{\oldss}{\thesubsection}
+\newcommand{\oldsss}{\thesubsubsection}
+
+\title{Expectation Propagation for the Clutter Problem -- Theory and 
+Implementation}
+
+\author{Matěj Korvas \\
+	% Charles University in Prague \\
+	% Faculty of Mathematics and Physics \\
+	% Institute of Applied and Formal Linguistics \\
+	% {\tt korvas@ufal.mff.cuni.cz}
+}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+These lecture notes describe the algorithm of Expectation Propagation as 
+applied to the Clutter problem, touching on the underlying theory.  
+Important is also the practical part where I document my implementation of 
+the algorithm.
+\end{abstract}
+
+\section{Introduction}
+
+Expectation Propagation (EP for short) was introduced in 
+\cite{minka_expectation_2001} as an iterated version of the previously 
+known Assumed-Density Filtering approximate inference algorithm. In the 
+work \cite{minka_expectation_2001}, the author also shows how EP is applied 
+to the clutter problem.
+
+In the next section, we describe the EP algorithm in general, in 
+Section~\ref{sec:clutter}, we formulate the clutter problem and derive 
+formulas used in EP to solve it, and the final Section~\ref{sec:impl} 
+discusses our implementation of EP applied to the clutter problem.
+
+\section{Expectation Propagation}
+
+Expectation Propagation is an approximate inference algorithm for graphical 
+probabilistic models that factorise as follows:
+\begin{equation}
+	p(\vek{z}, \vek{e}) = \prod_{i}{f_i(\vek{z}, \vek{e})}
+	\label{eq:factorisation}
+\end{equation}
+where $\vek{z}$ is the vector of latent variables, $\vek{e}$ is the vector 
+of observed variables (evidence), and $f_i$ are factors that depend on 
+a non-empty subset of $\vek{z}$ and a subset of $\vek{e}$. This 
+factorisation naturally emerges in experiments with i.i.d.\ observations 
+where $f_0$ is the prior on $\vek{z}$ and $f_i$ the posterior for the 
+$i$-th observation for $i = 1, \dots$
+
+TODO: Draw a figure of a graphical model that is typically used for doing 
+EP.
+
+EP approximates the factors $f_i$ with factors $\tilde{f}_i$ that belong to 
+a convenient probability distribution family. The approximation aims to 
+minimise the KL-divergence between a distribution computed using the exact 
+factor $f_i$, and a distribution using the approximate factor 
+$\tilde{f}_i$. If the approximating distribution family is chosen from the 
+exponential family (which it typically is), minimising the KL-divergence is 
+reduced to \emph{matching moments}, i.e.\ setting a few moments of the 
+estimating distribution (its sufficient statistics) to the values of 
+corresponding moments of the distribution approximated. Choosing the family 
+from the exponential family has also other benefits, including the fact 
+that this family is closed under the operation of product (this property 
+being assumed in the algorithm), and that Minka
+\cite{minka_expectation_2001} proved the existence of a fixed point for the 
+solution provided the family is exponential.
+
+Choosing the approximating family is the first thing done in the algorithm.  
+Next, approximated factors $\tilde{f}_i$ and their product $\kve 
+= \prod_i{\tilde{f}_i}$ are initialised to uniform.  The algorithm then 
+proceeds in iterations, iteratively updating all the approximating factors 
+in each of the outer iterations. When convergence is reached, the 
+normalisation coefficient, an estimate of $p(\vek{e})$, is computed. A more 
+detailed exposition of the algorithm follows.
+
+\renewcommand{\thesubsection}{\arabic{subsection}.}
+\renewcommand{\thesubsubsection}{\arabic{subsection}.\arabic{subsubsection}.}
+\subsection{Initialisation}
+All the approximate factors are initialised to uniform, meaning the initial 
+approximation is non-informative.  The product $\kve$ of the factors is 
+computed accordingly. Typically, all the factors, as well as their product, 
+are initialised to constant 1.
+
+Factors that already belong to the chosen family can also be computed 
+during initialisation, as such factors are always best approximated by 
+themselves, not needing to be updated iteratively.
+
+
+\subsection{Outer loop}
+
+Following four steps are repeated until convergence.
+
+\subsubsection[Choose a factor]{Choose a factor $\tilde{f}_i$}
+Choose a factor to approximate.
+
+\subsubsection[Compute the cavity distribution]{Compute the cavity 
+	distribution $\kve^{\setminus i}$}
+When updating the factor $\tilde{f}_i$, we would ideally want to minimise 
+the KL-divergence between the true distribution and the resulting 
+approximative distribution:
+\begin{equation}
+	\argmin_{\tilde{f}_i}\KL{p}{\prod_i{\tilde{f}_i}}.
+\end{equation}
+However, there we would need to compute moments of $p$ in order to optimise 
+for this KL-divergence. If we were able to do that, we would not need to 
+use approximate inference in the first place, so let us assume this is 
+intractable. In that case, we have to substitute $p$ with an approximation.  
+The approximation used in EP is the following:
+\begin{align}
+	\hat{p} &= \frac{1}{Z_i}f_i\kve^{\setminus i} \label{eq:phat}\\
+\intertext{where}
+	\kve^{\setminus i} &\propto \prod_{j \not= i}\tilde{f}_j
+		\hspace{1em}(= \kve / \tilde{f}_i).
+	\label{eq:cavity}
+\end{align}
+Here, $\kve^{\setminus i}$ is called the \term{cavity distribution}, as it
+is a distribution over $\vek{z}$ obtained by multiplying all the 
+approximate factors but the $i$-th one (thus creating the cavity in the 
+distribution) and normalising (in order to make it a distribution).  
+$\hat{p}$ is defined as a product of the \emph{exact} factor $f_i$ with the 
+rest of the factors \emph{approximated}, normalised to 1, and the cavity 
+distribution needs to be computed in order to express $\hat{p}$.
+
+\subsubsection[Compute the approximative distribution]{Compute the 
+	approximative distribution $\kve_{\text{new}}$}
+Whereas the previous step was concerned with computing the cavity 
+distribution, computing the normalisation coefficient $Z_i$ (as 
+$\int_{\vek{Z}} f_i(\vek{z})\kve^{\setminus i}(\vek{z})\byd\vek{z}$) and 
+the approximative posterior distribution $\hat{p}$ is reserved for this 
+step.
+
+Having computed $\hat{p}$, we can minimise the KL-divergence to an updated 
+$\kve_{\text{new}}$ restricted to be in the approximating family 
+$\mathcal{F}$:
+\begin{equation}
+	\argmin_{\kve_{\text{new}}\in\mathcal{F}}%
+		\KL{\hat{p}}{\kve_{\text{new}}}.
+	\label{eq:kl2}
+\end{equation}
+As mentioned earlier, this minimisation is achieved by matching moments of 
+$\kve_{\text{new}}$ to those of $\hat{p}$.
+
+\subsubsection{Update the factor}
+We can see the relation of the $f_i$, which we wish to approximate, to 
+$\kve_{\text{new}}$ by combining formulas~(\ref{eq:phat}) and 
+(\ref{eq:kl2}):
+\begin{equation}
+	\kve_{\text{new}} \approx \hat{p} = \frac{1}{Z_i}f_i\kve^{\setminus i}.
+\end{equation}
+From here, we easily obtain the formula for the approximation of $f_i$:
+\begin{equation}
+	f_i \approx \tilde{f}_i = Z_i\frac{\kve_{\text{new}}}{\kve^{\setminus 
+	i}}.
+	\label{eq:fupdate}
+\end{equation}
+Thanks to the right hand side of Eq.~(\ref{eq:fupdate}) consisting of 
+a division of distributions from the approximating family (and 
+a coefficient), $\tilde{f}_i$ will also be from that family (provided it is 
+closed under division).  Now, the approximate factor gets updated according 
+to Eq.~(\ref{eq:fupdate}), and the outer loop is repeated.
+
+\subsection{Evaluate the normalisation constant}
+After the algorithm has converged to a set of factors $\{\tilde{f}_i\}$, an 
+approximate posterior $p(\vek{z}, \vek{e})$ can be computed as a product of 
+the factors, according to the assumptions. If we are interested in 
+$p(\vek{e})$, the model evidence, it can be computed now as
+\begin{equation}
+	p(\vek{e}) = \int_{\vek{Z}} \prod_i\tilde{f}_i(\vek{z}) \byd\vek{z}.
+	\label{eq:normaliser}
+\end{equation}
+
+\renewcommand{\thesubsection}{\oldss}
+\renewcommand{\thesubsubsection}{\oldsss}
+
+\section{The Clutter Problem}
+\label{sec:clutter}
+
+In the Clutter problem, we assume a sequence of $d$-dimensional i.i.d.\ 
+observations being generated either from a normal distribution with an 
+unknown mean with some probability, or from the ``clutter'' 
+distribution. The model is specified by the following formulas:
+\begin{align}
+	W_i &\iid \bern(w_0) \\
+	\vek{x}_i\mid\boldsymbol{\mu} &\ind W_i \norm(\vek{0}_d, a\unity_{d}) + (1 - W_i) \norm(\boldsymbol{\mu}, 
+\unity_{d})
+\end{align}
+The $w_0$ parameter determines the \term{proportion of clutter}, $W_i$ 
+select for each observation whether it was generated from the 
+distribution of interest, $\norm(\boldsymbol{\mu}, \unity_{d})$, or the clutter, and 
+finally, $\boldsymbol{\mu}$ is the unknown mean of the distribution we are trying to 
+estimate. When learning the model, we will not learn $W_i$ explicitly 
+for each $i$, but rather treat the observations as identically 
+distributed with the same proportion of clutter $w_0$:
+\begin{equation}
+	p(\vek{x} \mid \boldsymbol{\mu}) = w_0 \norm(\vek{0}_d, a \unity_d) + (1 - w_0)\norm(\boldsymbol{\mu}, 
+	\unity_d).
+	\label{eq:cl-posterior}
+\end{equation}
+Finally, we adopt a broad Gaussian prior on $\boldsymbol{\mu}$:
+\begin{equation}
+	\boldsymbol{\mu} \sim \norm(\vek{0}_d, b\unity_{d}).
+\end{equation}
+
+TODO: draw the graphical model
+
+This problem fits nicely the assumptions for EP:
+\begin{enumerate}
+	\item It is intractable to do exact inference to find the value of $\boldsymbol{\mu}$.  
+		This is due to the fact that in the Bayesian network, the node for 
+		$\boldsymbol{\mu}$ has $(N + 1)$ independent parent nodes, a prior and the $N$ 
+		likelihood factors, of which the $N$ likelihood factors have 2 Gaussian 
+		components each. This results in the posterior for $\boldsymbol{\mu}$ consisting of 
+		$2^N$ $N$-dimensional Gaussians, corresponding to the $2^N$ subsets of 
+		observations that could have been generated from the true distribution 
+		(as opposed to the clutter).
+
+	\item The posterior is a product of factors that depend on a non-empty 
+		subset of the latent variables (which is $\{\boldsymbol{\mu}\}$ in this case) and 
+		a subset of the observed variables (either $\{\vek{x}_i\}$ for the likelihood 
+		factors, or $\emptyset$ for the prior) -- exactly as required.
+\end{enumerate}
+
+Instantiating the general Eq.~(\ref{eq:factorisation}) for the Clutter 
+problem, we get the following:
+\begin{equation}
+	p((\boldsymbol{\mu}), (\vek{x}_1, \dots, \vek{x}_N)) = p(\boldsymbol{\mu}) \cdot \prod_{i 
+	= 1}^{N}{p(\vek{x}_i\mid\boldsymbol{\mu})}.
+	\label{eq:cl-factorisation}
+\end{equation}
+In Eq.~(\ref{eq:cl-factorisation}), the generic $f_0$ is instantiated as 
+the prior $p(\boldsymbol{\mu})$, and the generic $f_i, i = 1,\dots$ as the likelihood
+$p(\vek{x}_i\mid\boldsymbol{\mu})$. In the following, we may use one or the other notation, 
+whichever is more convenient.
+
+We choose to approximate the factors, and hence also their product, by 
+(unnormalised) spherical Gaussians, with one stipulation: the factors 
+approximating the likelihoods may have their $\sigma^2$ parameter negative.  
+This is an inherent property of the algorithm, and we discuss it later in 
+Section~\ref{sec:impl}. Still, each factor $\tilde{f}_i$ can be represented 
+by the triple $\langle \tilde{s}_i, \vek{\tilde{m}}_i, \tilde{v}_i\rangle,$ 
+describing its scale ($\int_{\vek{Z}} \tilde{f}_i(\vek{z})\byd\vek{z}$), 
+mean, and variance, respectively:
+\begin{equation}
+	\tilde{f}_i = \tilde{s}_i\norm(\vek{\tilde{m}}_i, \tilde{v}_i\unity_{d}).
+	\label{eq:fac-notation}
+\end{equation}
+Besides that, also the approximate posterior has the same form, and we 
+shall denote its parameters as follows:
+\begin{equation}
+	\kve = \norm(\vek{m}, v\unity_{d}).
+	\label{eq:kve-notation}
+\end{equation}
+Note that $\kve$ is an approximating \emph{distribution}, i.e.\ it is 
+normalised to 1.
+
+Since $\tilde{f}_0$, the prior, already is a spherical Gaussian, its 
+parameters can be set as part of initialisation:
+\begin{align}
+	\tilde{s}_0 &= 1 &
+	\tilde{\vek{m}}_0 &= \vek{0}_d &
+	\tilde{v}_0 &= b.
+\end{align}
+This factor is exact and need not be updated anymore.
+
+What remains is expressing the formulas (\ref{eq:cavity}), (\ref{eq:kl2}), 
+(\ref{eq:fupdate}) for a factor $\tilde{f}_i, i=1, \dots$, and 
+(\ref{eq:normaliser}).  The following paragraphs are devoted to this.
+
+% !?XXX Numbered subsection here caused a (probably) infinite loop in 
+% compilation.
+\subsection*{Update formula for the cavity distribution}
+
+The general formula is as follows:
+\begin{equation}
+	\kve^{\setminus i} \propto \kve / \tilde{f}_i.
+	\tag{\ref{eq:cavity} -- repeated}
+\end{equation}
+After substituting the values of $\kve$ and $\tilde{f}_i$, represented as 
+shown in Eqs.~(\ref{eq:kve-notation}) and (\ref{eq:fac-notation}), 
+respectively, we obtain the following:
+\begin{equation}
+	\kve^{\setminus i} \propto \frac{\norm(\vek{m}, v\unity_{d})}
+		{\tilde{s}_i\norm(\vek{\tilde{m}}_i, \tilde{v}_i\unity_{d})}.
+\end{equation}
+The parameters of $\kve^{\setminus i}$ can be computed using the formula 
+for the ratio of Gaussians,
+\begin{gather}
+	\norm(\vek{\boldsymbol{\mu}}_1, \vek{\Sigma}_1)/\norm(\vek{\boldsymbol{\mu}}_2, \vek{\Sigma}_2) 
+	= C\norm(\vek{\boldsymbol{\mu}}, \vek{\Sigma})\\
+\intertext{where}
+	\begin{aligned}
+		\vek{\Sigma} &= \left(\vek{\Sigma}_1^{-1} 
+			- \vek{\Sigma}_2^{-1}\right)^{-1} \\
+		\vek{\boldsymbol{\mu}} &= \vek{\Sigma}\left(\vek{\Sigma}_1^{-1}\vek{\boldsymbol{\mu}}_1
+			- \vek{\Sigma}_2^{-1}\vek{\boldsymbol{\mu}}_2\right) \\
+		C &= \sqrt{\frac{|\vek{\Sigma}|\:|\vek{\Sigma}_2|}
+									 {(2\pi)^d|\vek{\Sigma}_1|}}
+				\exp\left\{-\frac{1}{2}\left(
+						\vek{\boldsymbol{\mu}}_1^{\mathrm{T}}\vek{\Sigma}_1^{-1}\vek{\boldsymbol{\mu}}_1
+						- \vek{\boldsymbol{\mu}}_2^{\mathrm{T}}\vek{\Sigma}_2^{-1}\vek{\boldsymbol{\mu}}_2 
+						- \vek{\boldsymbol{\mu}}^{\mathrm{T}}\vek{\Sigma}^{-1}\vek{\boldsymbol{\mu}}
+						\right)\right\}.
+	\end{aligned}
+\end{gather}
+As the result, we can express $\kve^{\setminus i}$ in terms of its 
+parameters $\vek{m^{\setminus i}}$ (mean) and $v^{\setminus i}$ 
+($v^{\setminus i}\unity_{d}$ being the variance-covariance matrix) as follows:
+\begin{align}
+	\vek{m^{\setminus i}} &= v^{\setminus i}(\vek{m}v^{-1} 
+	- \vek{\tilde{m}}_i\tilde{v}_i^{-1}) &%
+	 v^{\setminus i} &= \left(v^{-1} - \tilde{v}_i^{-1}\right)^{-1}.
+\end{align}
+
+\subsection*{Update formula for $\kve$}
+In computing $\kve_{\text{new}}$ according to Eq.~\eqref{eq:kl2}, we have 
+to compute $\hat{p}$ and then its first and second moment in order to 
+arrive at the spherical normal distribution minimising the KL-divergence to 
+$\hat{p}$. In the definition of $\hat{p}$ in Eq.~\eqref{eq:phat}, the 
+quantity $Z_i$ is yet to be computed. It is the normalisation constant of 
+$f_i\kve^{\setminus i}$, i.e.:
+\begin{equation}
+	Z_i = \intrc f_i(\boldsymbol{\mu})\kve^{\setminus i}(\boldsymbol{\mu})\byd\boldsymbol{\mu}.
+	\label{eq:zi1}
+\end{equation}
+
+Parameters of $\kve^{\setminus i}$ were obtained in the previous step, 
+and $f_i$ was defined as the likelihood for $\vek{x}_i$ (cf.\ 
+Eq.~\eqref{eq:cl-posterior}):
+\begin{equation}
+	f_i(\boldsymbol{\mu}) = w_0 \norm(\vek{x}_i; \vek{0}_d, a\unity_{d}) + (1 - w_0) 
+\norm(\vek{x}_i; \boldsymbol{\mu}, \unity_{d}).
+\end{equation}
+
+Substituting into Eq.~\eqref{eq:zi1}, we get
+\begin{align}
+	Z_i &= \intrc \left[w_0  \norm(\vek{x}_i; \vek{0}_d, a\unity_{d})
+										 + (1 - w_0) \norm(\vek{x}_i; \boldsymbol{\mu}, \unity_{d})\right]
+							 \norm(\boldsymbol{\mu}; \vek{m^{\setminus i}}, v^{\setminus i}\unity_{d})
+					\byd\boldsymbol{\mu} \\
+			\begin{split}
+				 &=\intrc w_0  \norm(\vek{x}_i; \vek{0}_d, a\unity_{d})
+							 \norm(\boldsymbol{\mu}; \vek{m^{\setminus i}}, v^{\setminus i}\unity_{d})
+					\byd\boldsymbol{\mu}\\
+			&\hphantom{=}+  \intrc (1 - w_0) \norm(\vek{x}_i; \boldsymbol{\mu}, 
+							 \unity_{d})
+							 \norm(\boldsymbol{\mu}; \vek{m^{\setminus i}}, v^{\setminus i}\unity_{d})
+					\byd\boldsymbol{\mu}
+				 \end{split} \\
+			&= w_0  \norm(\vek{x}_i; \vek{0}_d, a\unity_{d})
+			+  (1 - w_0) \intrcc\norm(\vek{x}_i - \boldsymbol{\mu}; \vek{0}_d, 
+							 \unity_{d})
+							 \norm(\boldsymbol{\mu}; \vek{m^{\setminus i}}, v^{\setminus i}\unity_{d})
+					\byd\boldsymbol{\mu}
+			\label{eq:before_c} \\
+			&= w_0  \norm(\vek{x}_i; \vek{0}_d, a\unity_{d})
+			+  (1 - w_0)\norm\!\left(\vek{x}_i; \vek{m^{\setminus i}}, (v^{\setminus i} 
++ 1)\unity_{d}\right)
+			\label{eq:after_c}
+\end{align}
+where, going from \eqref{eq:before_c} to \eqref{eq:after_c}, we used the 
+result~\cite{tina-2003} about convolution of Gaussians.
+
+The mean value and variance of $\hat{p}$ can be derived for a general form
+of the factor $f_i$. Hence, we will simplify the next derivations by 
+rewriting $\hat{p}$ in the following form:
+\begin{align}
+	\hat{p}(\boldsymbol{\mu}) &= \frac{1}{Z(\vek{m}, \vek{\Sigma})}f(\boldsymbol{\mu})\norm(\boldsymbol{\mu}; \vek{m}, 
+\vek{\Sigma})\\
+\intertext{where}
+	Z(\vek{m}, \vek{\Sigma}) &= \intrc f(\boldsymbol{\mu})\norm(\boldsymbol{\mu}; \vek{m}, 
+\vek{\Sigma})\byd \boldsymbol{\mu}.
+\end{align}
+
+The two moments will be found from derivatives of $Z$:
+\begin{align}
+	\frac{\byd Z(\vek{m}, \vek{\Sigma})}{\byd \vek{m}} %
+		&= \intr\frac{\byd}{\byd \vek{m}}\left(f(\boldsymbol{\mu})\norm(\boldsymbol{\mu}; 
+			\vek{m}, \vek{\Sigma})\right)\byd\boldsymbol{\mu}\\
+		&= \intr\frac{f(\boldsymbol{\mu})}{\sqrt{(2\pi)^d |\vek{\Sigma}|}}%
+						\exp\left\{-\frac{1}{2}(\boldsymbol{\mu} - \vek{m})^T\vek{\Sigma}^{-1}(\boldsymbol{\mu} 
+						- \vek{m})\right\}%
+						\left((\boldsymbol{\mu} - \vek{m})^T\vek{\Sigma}^{-1}\right) \byd \boldsymbol{\mu}\\
+		&= \intrc Z(\vek{m}, \vek{\Sigma}) \hat{p}(\boldsymbol{\mu})\left((\boldsymbol{\mu} 
+		- \vek{m})^T\vek{\Sigma}^{-1}\right) \byd \boldsymbol{\mu}\\
+		&= Z(\vek{m}, \vek{\Sigma})\left(
+					\intrc\boldsymbol{\mu}    \hat{p}(\boldsymbol{\mu}) \byd \boldsymbol{\mu} %
+				-	\intrc\vek{m}\hat{p}(\boldsymbol{\mu}) \byd 
+		\boldsymbol{\mu}\right)^T\vek{\Sigma}^{-1}\\
+		&= Z(\vek{m}, \vek{\Sigma})\cdot\left(\ee_{\hat{p}}[\boldsymbol{\mu}] 
+		- \vek{m}\right)^T\vek{\Sigma}^{-1},
+		\label{eq:z_by_m}
+		\\
+	\frac{\byd Z(\vek{m}, \vek{\Sigma})}{\byd \vek{\Sigma}} %
+		&= \intr\frac{\byd}{\byd \vek{\Sigma}}\left(f(\boldsymbol{\mu})\norm(\boldsymbol{\mu}; 
+			\vek{m}, \vek{\Sigma})\right) \byd\boldsymbol{\mu} \\
+		&= \intr\frac{f(\boldsymbol{\mu})}{\sqrt{(2\pi)^d|\vek{\Sigma}|}}%
+						\exp\left\{-\frac{1}{2}(\boldsymbol{\mu} - \vek{m})^T\vek{\Sigma}^{-1}(\boldsymbol{\mu} 
+						- \vek{m})\right\}%
+						\left(\frac{1}{2}\vek{\Sigma}^{-T}(\boldsymbol{\mu} - \vek{m})(\boldsymbol{\mu} 
+				- \vek{m})^T\vek{\Sigma}^{-T}\right)
+				\notag\\
+		&\hphantom{=\intr|}
+					- \frac{1}{2}\frac{f(\boldsymbol{\mu})}{\sqrt{(2\pi)^{d}|\vek{\Sigma}|}}
+					\vek{\Sigma}^{-T}
+					\exp\left\{-\frac{1}{2}(\boldsymbol{\mu} - \vek{m})^T\vek{\Sigma}^{-1}
+										 (\boldsymbol{\mu} - \vek{m})\right\}%
+						\byd \boldsymbol{\mu}\\
+		&= \frac{1}{2}\vek{\Sigma}^{-1}\left[
+					\intrc\boldsymbol{\mu}\boldsymbol{\mu}^TZ(\vek{m}, \vek{\Sigma})\hat{p}(\boldsymbol{\mu})\byd\boldsymbol{\mu}
+					- \intrc\boldsymbol{\mu}\vek{m}^T
+							Z(\vek{m}, \vek{\Sigma})\hat{p}(\boldsymbol{\mu})\byd\boldsymbol{\mu}
+			\right.\notag\\
+		&\hphantom{= \frac{1}{2}\sigma^{-1}\left[\right.}\left.%
+					- \intrc\vek{m}\boldsymbol{\mu}^T
+							Z(\vek{m}, \vek{\Sigma})\hat{p}(\boldsymbol{\mu})\byd\boldsymbol{\mu}
+					+ \intrc\vek{m}\vek{m}^T
+							Z(\vek{m}, \vek{\Sigma})\hat{p}(\boldsymbol{\mu})\byd\boldsymbol{\mu}
+				\right]\vek{\Sigma}^{-1}\notag\\
+		&\hphantom{=\frac{1}{2}}%
+			- \frac{1}{2}\intrc\vek{\Sigma}^{-1}
+					Z(\vek{m}, \vek{\Sigma})\hat{p}(\boldsymbol{\mu})\byd\boldsymbol{\mu}\\
+		&=Z(\vek{m}, \vek{\Sigma})\cdot\left\{\frac{1}{2}\vek{\Sigma}^{-1}\left[
+				\ee_{\hat{p}}[\boldsymbol{\mu}\boldsymbol{\mu}^T]
+				-\ee_{\hat{p}}[\boldsymbol{\mu}]\vek{m}^T
+				-\vek{m}\ee_{\hat{p}}[\boldsymbol{\mu}]^T
+				+\vek{m}\vek{m}^T      \right]\vek{\Sigma}^{-1}
+			-\frac{1}{2}\vek{\Sigma}^{-1}\right\}
+		\label{eq:z_by_v}
+\end{align}
+where $\vek{X}^{-T}$ is a shorthand for $\left(\vek{X}^{-1}\right)^T 
+(=\left(\vek{X}^{T}\right)^{-1})$ and we applied matrix calculus results 
+from \cite{mcalc}.
+
+Eqs.~\eqref{eq:z_by_m} and \eqref{eq:z_by_v} give us formulas for the 
+moments we are interested in.
+However, they include the term $Z(\vek{m}, \vek{\Sigma}),$ which is an 
+inconvenient integral to compute. Taking the derivative of the $\log$ 
+instead will get us rid of this term:
+\begin{align}
+	\frac{\byd\log Z(\vek{m}, \vek{\Sigma})}{\byd\vek{m}} %
+	&= \frac{1}{Z(\vek{m}, \vek{\Sigma})}\frac{\byd Z(\vek{m}, 
+	\vek{\Sigma})}{\byd\vek{m}}
+	= \left(\ee_{\hat{p}}[\boldsymbol{\mu}] - \vek{m}\right)^T\vek{\Sigma}^{-1}
+	\label{eq:logz_by_m}\\
+	\frac{\byd\log Z(\vek{m}, \vek{\Sigma})}{\byd \vek{\Sigma}} %
+	&= \frac{1}{Z(\vek{m}, \vek{\Sigma})}\frac{\byd\log Z(\vek{m}, \vek{\Sigma})}{\byd 
+	\vek{\Sigma}}\notag\\
+	% = \frac{1}{2v^2}\ee_{\hat{p}}[\boldsymbol{\mu}^T\boldsymbol{\mu}] 
+		% - \frac{\vek{m}}{v^2}\ee_{\hat{p}}[\boldsymbol{\mu}] 
+		% + \frac{1}{2}\frac{\vek{m}^T\vek{m}}{v^2}-\frac{d}{2v}.
+	&=\frac{1}{2}\vek{\Sigma}^{-1}\left[
+			\ee_{\hat{p}}[\boldsymbol{\mu}\boldsymbol{\mu}^T]
+			-\ee_{\hat{p}}[\boldsymbol{\mu}]\vek{m}^T
+			-\vek{m}\ee_{\hat{p}}[\boldsymbol{\mu}]^T
+			+\vek{m}\vek{m}^T      \right]\vek{\Sigma}^{-1}
+		-\frac{1}{2}\vek{\Sigma}^{-1}
+	\label{eq:logz_by_v}
+\end{align}
+
+The first and second moment are now obtained easily from 
+Eqs.~\eqref{eq:logz_by_m} and \eqref{eq:logz_by_v} by shuffling them 
+a bit. We get:
+\begin{align}
+	\ee_{\hat{p}}[\boldsymbol{\mu}] &= \vek{m} +
+		\vek{\Sigma}\left(\frac{\byd\log Z(\vek{m}, \vek{\Sigma})}{\byd\vek{m}}\right)^T
+		\label{eq:minimiser_mean}
+		\\
+	\ee_{\hat{p}}[\boldsymbol{\mu}\boldsymbol{\mu}^T] - \ee_{\hat{p}}[\boldsymbol{\mu}]\ee_{\hat{p}}[\boldsymbol{\mu}]^T
+		&=
+		\vek{\Sigma}\left(2\frac{\byd\log Z(\vek{m}, \vek{\Sigma})}{\byd \vek{\Sigma}}
+									 + \vek{\Sigma}^{-1}\right)\vek{\Sigma}
+				 - \Big[-\ee_{\hat{p}}[\boldsymbol{\mu}]\vek{m}^T
+				        -\vek{m}\ee_{\hat{p}}[\boldsymbol{\mu}]^T
+				        +\vek{m}\vek{m}\Big]\notag\\
+		&\hphantom{=|}\mbox{}
+			- \ee_{\hat{p}}[\boldsymbol{\mu}]\ee_{\hat{p}}[\boldsymbol{\mu}]^T\\
+		&=
+		2\vek{\Sigma}\frac{\byd\log Z(\vek{m}, \vek{\Sigma})}{\byd \vek{\Sigma}}\vek{\Sigma} 
+				 + \vek{\Sigma}\notag\\
+		&\hphantom{=|}\mbox{}
+			- \left[\left(\ee_{\hat{p}}[\boldsymbol{\mu}] - \vek{m}\right)
+							\left(\ee_{\hat{p}}[\boldsymbol{\mu}] - \vek{m}\right)^T
+							- \ee_{\hat{p}}[\boldsymbol{\mu}]\ee_{\hat{p}}[\boldsymbol{\mu}]^T\right]
+			- \ee_{\hat{p}}[\boldsymbol{\mu}]\ee_{\hat{p}}[\boldsymbol{\mu}]^T\\
+		&=
+		2\vek{\Sigma}\frac{\byd\log Z(\vek{m}, \vek{\Sigma})}{\byd \vek{\Sigma}}\vek{\Sigma} + \vek{\Sigma}
+			- \vek{\Sigma}\left(\frac{\byd\log Z(\vek{m}, \vek{\Sigma})}{\byd\vek{m}}\right)^T
+				\frac{\byd\log Z(\vek{m}, \vek{\Sigma})}{\byd\vek{m}}\vek{\Sigma}^T\\
+		&=
+		\vek{\Sigma}\left[
+		2\frac{\byd\log Z(\vek{m}, \vek{\Sigma})}{\byd \vek{\Sigma}}
+			- \left(\frac{\byd\log Z(\vek{m}, \vek{\Sigma})}{\byd\vek{m}}\right)^T
+				\frac{\byd\log Z(\vek{m}, \vek{\Sigma})}{\byd\vek{m}}\right]\vek{\Sigma}
+			+ \vek{\Sigma}
+		\label{eq:minimiser_var}
+	% \ee_{\hat{p}}[\boldsymbol{\mu}^T\boldsymbol{\mu}] - \ee_{\hat{p}}[\boldsymbol{\mu}]^T\ee_{\hat{p}}[\boldsymbol{\mu}] %
+		% &= dv - v^2\left( (\nabla_{\vek{m}}\log Z(\vek{m}, v))
+\end{align}
+
+\bigskip
+Now, what remains to be computed in order to arrive at the KL-divergence 
+minimiser are the derivatives of $\log Z$:
+\begin{align}
+\frac{\byd \log Z_i}{\byd \vek{m^{\setminus i}}} &=
+			\frac{\byd \log\left[ w_0  \norm(\vek{x}_i; \vek{0}_d, a\unity_{d})
+			+  (1 - w_0)\norm\!\left(\vek{x}_i; \vek{m^{\setminus i}}, (v^{\setminus i} 
+			+ 1)\unity_{d}\right)
+			\right]}{\byd \vek{m^{\setminus i}}} \\
+			&=
+			\frac{1}{w_0  \norm(\vek{x}_i; \vek{0}_d, a\unity_{d})
+			+  (1 - w_0)\norm\!\left(\vek{x}_i; \vek{m^{\setminus i}}, (v^{\setminus i} 
+			+ 1)\unity_{d}\right)
+			}\cdot
+			\frac{(1 - w_0)\byd
+			\norm\!\left(\vek{x}_i; \vek{m^{\setminus i}}, (v^{\setminus i} 
+			+ 1)\unity_{d}\right)
+			}{\byd \vek{m^{\setminus i}}} \\
+			&=
+			\frac{1}{w_0  \norm(\vek{x}_i; \vek{0}_d, a\unity_{d})
+			+  (1 - w_0)\norm\!\left(\vek{x}_i; \vek{m^{\setminus i}}, (v^{\setminus i} 
+			+ 1)\unity_{d}\right)
+			}\notag\\
+		&\hphantom{=|}\mbox{}
+			\cdot
+			\frac{
+				\frac{1 - w_0}
+				{\sqrt{(2\pi)^d|(v^{\setminus i} + 1)\unity_d|}}
+			\byd
+			\exp\left(-\frac{1}{2}
+				(\vek{x}_i - \vek{m}^{\setminus i})^T
+				((v^{\setminus i} + 1)\unity_d)^{-1}
+				(\vek{x}_i - \vek{m}^{\setminus i})\right)}{\byd \vek{m^{\setminus i}}} \\
+			&=
+			\frac{\frac{1 - w_0}
+				{\sqrt{(2\pi)^d|(v^{\setminus i} + 1)\unity_d|}}
+			\exp\left(-\frac{1}{2}
+				(\vek{x}_i - \vek{m}^{\setminus i})^T
+				((v^{\setminus i} + 1)\unity_d)^{-1}
+				(\vek{x}_i - \vek{m}^{\setminus i})\right)
+				}
+			{w_0  \norm(\vek{x}_i; \vek{0}_d, a\unity_{d})
+			+  (1 - w_0)\norm\!\left(\vek{x}_i; \vek{m^{\setminus i}}, (v^{\setminus i} 
+			+ 1)\unity_{d}\right)
+			}\notag\\
+		&\hphantom{=|}\mbox{}
+			\cdot
+			\frac{
+			\byd
+			\left(-\frac{1}{2}
+				(\vek{x}_i - \vek{m}^{\setminus i})^T
+				((v^{\setminus i} + 1)\unity_d)^{-1}
+				(\vek{x}_i - \vek{m}^{\setminus i})\right)}{\byd \vek{m^{\setminus i}}} \\
+			&=
+			\frac{(1 - w_0)
+				\norm\!\left(\vek{x}_i; \vek{m^{\setminus i}}, (v^{\setminus i} 
+							+ 1)\unity_{d}\right)
+				}
+			{w_0  \norm(\vek{x}_i; \vek{0}_d, a\unity_{d})
+			+  (1 - w_0)\norm\!\left(\vek{x}_i; \vek{m^{\setminus i}}, (v^{\setminus i} 
+			+ 1)\unity_{d}\right)
+			}
+			\cdot
+			\left(\vek{x}_i - \vek{m^{\setminus i}}\right)^T
+			\left((v^{\setminus i} + 1)\unity_d\right)^{-1}
+\end{align}
+Let us simplify the expression by introducing $r$ as the probability of 
+$\vek{x}_i$ not being generated from the clutter, and realising that 
+multiplication by the last term is equivalent to division by 
+$(v^{\setminus i} + 1)$:
+\begin{align}
+	r &\colonequals
+			\frac{(1 - w_0)
+				\norm\!\left(\vek{x}_i; \vek{m^{\setminus i}}, (v^{\setminus i} 
+							+ 1)\unity_{d}\right)
+				}
+			{w_0  \norm(\vek{x}_i; \vek{0}_d, a\unity_{d})
+			+  (1 - w_0)\norm\!\left(\vek{x}_i; \vek{m^{\setminus i}}, (v^{\setminus i} 
+			+ 1)\unity_{d}\right)
+			}\\
+	\frac{\byd \log Z_i}{\byd \vek{m^{\setminus i}}} &=
+		r\frac{\big(\vek{x}_i - \vek{m^{\setminus 
+					i}}\rlap{$\big)^T$}\hphantom{\big)}}
+					{v^{\setminus i} + 1}
+\end{align}
+
+The derivative of $\log Z_i$ by the variance parameter is obtained 
+similarly (let $\vek{\Sigma}$ denote the second parameter of $Z_i$, which has 
+the value $v^{\setminus i}\unity_d$):
+\begin{align}
+\frac{\byd \log Z_i}{\byd \vek{\Sigma}} &=
+			\frac{\byd \log\left[ w_0  \norm(\vek{x}_i; \vek{0}_d, a\unity_{d})
+			+  (1 - w_0)\norm\!\left(\vek{x}_i; \vek{m^{\setminus i}}, \vek{\Sigma} 
+			+ \unity_d\right)
+			\right]}{\byd \vek{\Sigma}} \\
+			&=
+			\frac{1}{w_0  \norm(\vek{x}_i; \vek{0}_d, a\unity_{d})
+			+  (1 - w_0)\norm\!\left(\vek{x}_i; \vek{m^{\setminus i}}, \vek{\Sigma} 
+			+ \unity_d\right)
+			}%\notag\\
+		% &\hphantom{=|}\mbox{}
+			\cdot
+			\frac{(1 - w_0)\byd
+			\norm\!\left(\vek{x}_i; \vek{m^{\setminus i}}, \vek{\Sigma} + \unity_d\right)
+			}{\byd \vek{\Sigma}} \\
+			&=
+			\frac{(1 - w_0)
+				(2\pi)^{-d/2}}
+			{w_0  \norm(\vek{x}_i; \vek{0}_d, a\unity_{d})
+			+  (1 - w_0)\norm\!\left(\vek{x}_i; \vek{m^{\setminus i}}, \vek{\Sigma} 
+			+ \unity_d\right)
+			}\notag\\
+		&\hphantom{=|}\mbox{}
+			\cdot
+			\frac{
+			\byd\left[
+			\left|\vek{\Sigma} + \unity_d\right|^{-1/2}
+			\exp\left(-\frac{1}{2}
+				(\vek{x}_i - \vek{m}^{\setminus i})^T
+				(\vek{\Sigma} + \unity_d)^{-1}
+				(\vek{x}_i - \vek{m}^{\setminus i})\right)\right]}
+				{\byd \vek{\Sigma}} \\
+			&=
+			\frac{(1 - w_0)
+				(2\pi)^{-d/2}}
+			{w_0  \norm(\vek{x}_i; \vek{0}_d, a\unity_{d})
+			+  (1 - w_0)\norm\!\left(\vek{x}_i; \vek{m^{\setminus i}}, \vek{\Sigma} 
+			+ \unity_d\right)
+			}\notag\\
+			&\hphantom{=|}\mbox{}\cdot\left\{
+     \left|\vek{\Sigma} + \unity_d\right|^{-1/2}%
+						\exp\left[-\frac{1}{2}(\vek{x}_i - \vek{m^{\setminus 
+				i}})^T(\vek{\Sigma} + \unity_d)^{-1}(\vek{x}_i - \vek{m^{\setminus 
+				i}})\right]\right.\notag\\%
+			&\hphantom{=|\cdot\Bigg\{}\mbox{}
+				\cdot\left(\frac{1}{2}(\vek{\Sigma} + \unity_d)^{-T}(\vek{x}_i - \vek{m^{\setminus 
+				i}})(\vek{x}_i - \vek{m^{\setminus i}})^T(\vek{\Sigma} + \unity_d)^{-T}\right)
+				\notag\\
+			&\hphantom{=|\cdot\Bigg\{}\mbox{}\left.
+					- \frac{1}{2}\left|\vek{\Sigma} + \unity_d\right|^{-1/2}
+					(\vek{\Sigma} + \unity_d)^{-T}
+					\exp\left[-\frac{1}{2}(\vek{x}_i - \vek{m^{\setminus i}})^T(\vek{\Sigma} + \unity_d)^{-1}
+										 (\vek{x}_i - \vek{m^{\setminus i}})\right]\right\}\\
+			&=
+			\frac{(1 - w_0)
+				% (2\pi)^{-d/2}
+				}
+			{w_0  \norm(\vek{x}_i; \vek{0}_d, a\unity_{d})
+			+  (1 - w_0)\norm\!\left(\vek{x}_i; \vek{m^{\setminus i}}, \vek{\Sigma} + \unity_d\right)
+			}\notag\\
+			&\hphantom{=|}\mbox{}\cdot\Bigg[
+				\norm\!\left(\vek{x}_i; \vek{m^{\setminus i}}, \vek{\Sigma} + \unity_d\right)
+				\cdot\frac{(\vek{x}_i - \vek{m^{\setminus i}})(\vek{x}_i 
+				- \vek{m^{\setminus i}})^T}{2(v^{\setminus i} + 1)^2}
+				% \notag\\
+			% &\hphantom{=|\cdot\Bigg\{}\mbox{}
+				- \norm\!\left(\vek{x}_i; \vek{m^{\setminus i}}, \vek{\Sigma} + \unity_d\right)
+				\cdot\frac{\unity_d}{2(v^{\setminus i} + 1)}
+				\Bigg]\\
+			&= \frac{r}{2(v^{\setminus i} + 1)^2}\cdot\left[
+				(\vek{x}_i - \vek{m^{\setminus i}})(\vek{x}_i - \vek{m^{\setminus i}})^T
+				- (v^{\setminus i} + 1)\unity_d
+			\right]
+\end{align}
+
+Substituting into Eqs.~\eqref{eq:minimiser_mean} and 
+\eqref{eq:minimiser_var}, we finally arrive at the new parameters of 
+$\mathcal{Q}$, $\vek{m_{\text{new}}}$ (mean) and 
+$\vek{\Sigma_{\text{new}}}$ (variance):
+\begin{align}
+	 \vek{m_{\text{new}}} &= \vek{m^{\setminus i}} + \vek{\Sigma}
+							\left(\frac{\byd \log Z_i}
+									 {\byd \vek{m^{\setminus i}}}\right)^T
+	         = \vek{m^{\setminus i}} + \vek{\Sigma}
+							r\frac{\vek{x}_i - \vek{m^{\setminus i}}}
+										{v^{\setminus i} + 1}
+	         = \vek{m^{\setminus i}}
+					 		+ r\frac{v^{\setminus i}}{v^{\setminus i} + 1}
+							  (\vek{x}_i - \vek{m^{\setminus i}})
+					\label{eq:mnew}
+					\\
+	 \vek{\Sigma_{\text{new}}} &=
+		\vek{\Sigma}\left\{
+		2\frac{\byd\log Z_i}{\byd \vek{\Sigma}}
+			- \left(\frac{\byd\log Z_i}{\byd\vek{m^{\setminus i}}}\right)^T
+				\frac{\byd\log Z_i}{\byd\vek{m^{\setminus i}}}\right\}\vek{\Sigma}
+			+ \vek{\Sigma} \\
+		&=
+		\vek{\Sigma}\Bigg\{
+			\frac{r}{(v^{\setminus i} + 1)^2}\cdot\left[
+				(\vek{x}_i - \vek{m^{\setminus i}})(\vek{x}_i - \vek{m^{\setminus i}})^T
+				- (v^{\setminus i} + 1)\unity_d
+			\right]\notag\\
+		&\hphantom{=\vek{\Sigma}\Bigg\{}\mbox{}
+			- \left(r\frac{\left(\vek{x}_i - \vek{m^{\setminus i}}\right)^T}
+					{v^{\setminus i} + 1}\right)^T
+			r\frac{\left(\vek{x}_i - \vek{m^{\setminus i}}\right)^T}
+					{v^{\setminus i} + 1}
+				\Bigg\}\vek{\Sigma}
+			+ \vek{\Sigma} \\
+		&=
+			r\left(\frac{v^{\setminus i}}{v^{\setminus i} + 1}\right)^2
+			\cdot\left[
+				(1 - r)(\vek{x}_i - \vek{m^{\setminus i}})(\vek{x}_i - \vek{m^{\setminus i}})^T
+				- (v^{\setminus i} + 1)\unity_d
+			\right]
+			+ \vek{\Sigma}
+			\label{eq:sigma_new}
+\end{align}
+where we again used the symbol $\vek{\Sigma}$ to denote $v^{\setminus 
+i}\unity_d$.
+
+However, this $\vek{\Sigma}_{\text{new}}$ is generally not a variance 
+matrix of a spherical normal, which is the form we assume for the 
+posterior distribution.
+% However, we assume a \emph{spherical} multivariate normal as a form of 
+% the posterior, i.e., the covariance matrix should be in the form 
+% $v\unity_d$ for some $v \in \real$.
+Hence, we need to find the KL-divergence minimiser of a spherical normal 
+from a normal with the general covariance $\vek{\Sigma}$.%
+\footnote{This $\Sigma$ will be the $\vek{\Sigma_{\text{new}}}$ as given by 
+Eq.~\eqref{eq:sigma_new}.} %
+Let us solve this problem now, denoting the general multivariate normal 
+with $\mathcal{Q}$ and the spherical one with $\mathcal{S}$, and 
+assuming the mean $\vek{0}$ for both, WLOG:
+\begin{align}
+	\argmin_v \text{KL}(\mathcal{Q}\:||\:\mathcal{S}) &= %
+	\argmin_v \intrcc
+		\norm(\vek{x}; \vek{0}, \vek{\Sigma})
+		\log \frac{\norm(\vek{x}; \vek{0}, \vek{\Sigma})}
+							{\norm(\vek{x}; \vek{0}, v\unity_d)}  \byd \vek{x} \\
+	&= \argmin_v \intrcc
+		\norm(\vek{x}; \vek{0}, \vek{\Sigma})
+		\log\frac{\sqrt{|v\unity_d|}\exp\left\{-\frac{1}{2}\vek{x}^T\vek{\Sigma}^{-1}\vek{x}\right\}}
+		         {\sqrt{|\vek{\Sigma}|}\exp\left\{-\frac{1}{2}\vek{x}^T v^{-1}\unity_d \vek{x}\right\}}
+						 \byd \vek{x} \\
+	&= \argmin_v \intrcc
+		\norm(\vek{x}; \vek{0}, \vek{\Sigma})
+	\left[\frac{d}{2}\log v - \frac{1}{2}\vek{x}^T\vek{\Sigma}^{-1}\vek{x}
+				- \frac{1}{2}\log|\vek{\Sigma}| + \frac{1}{2}\vek{x}^Tv^{-1}\unity_d \vek{x}
+	\right]\byd \vek{x} \\
+	&= \argmin_v \intrcc
+		\norm(\vek{x}; \vek{0}, \vek{\Sigma})
+		\big(d\log v + \vek{x}^T\vek{x}/v\big)\byd \vek{x} \\
+	&\equalscolon \argmin_v G(v)
+\end{align}
+
+Because the function we minimise here is smooth for $v > 0$, we shall 
+find the minimum by setting the derivative equal to zero:
+\begin{align}
+	0 &= \frac{\byd G}{\byd v}(v^*) \\
+	&= \left(\frac{\byd}{\byd v}\intrcc
+		\norm(\vek{x}; \vek{0}, \vek{\Sigma})
+		\big(d\log v + \vek{x}^T\vek{x}/v\big)\byd \vek{x}\right)(v^*) \\
+	&= \left(\intr
+		\frac{\byd}{\byd v}\norm(\vek{x}; \vek{0}, \vek{\Sigma})
+		\big(d\log v + \vek{x}^T\vek{x}/v\big)\byd \vek{x}\right)(v^*) \\
+	&= \intrcc
+		\norm(\vek{x}; \vek{0}, \vek{\Sigma})
+		\big(d/v - \vek{x}^T\vek{x}/v^2\big)\byd \vek{x}\bigg|_{v=v^*} \\
+	&= \frac{d}{v} - \frac{1}{v^2} \ee_{\mathcal{Q}}[\vek{x}^T\vek{x}] 
+\bigg|_{v=v^*}
+	\label{eq:vstar}
+\end{align}
+Using the following identity for the product of a quadratic form with 
+a Gaussian density function,
+\begin{equation}
+	\intrc
+		(\vek{x}-\vek{x_0})^T\vek{F}^{-1}(\vek{x}-\vek{x_0})
+		\norm(\vek{x}; \boldsymbol{\mu}, \vek{\Sigma}) \byd\vek{x}
+	= (\vek{x_0} - \boldsymbol{\mu})^T\vek{F}^{-1}(\vek{x_0} - \boldsymbol{\mu})
+	+ \text{Tr}[\vek{F}^{-1}\vek{\Sigma}],
+\end{equation}
+we can express the minimiser $v^*$ from Eq.~\eqref{eq:vstar}:
+\begin{equation}
+	v^* = \text{Tr}[\vek{\Sigma}] / d.
+\end{equation}
+
+This result can be combined with Eq.~\eqref{eq:sigma_new} to give us the 
+updated variance of the spherical Gaussian posterior:
+\begin{align}
+		v_{\text{new}} &=
+			\text{Tr}\left[r\left(\frac{v^{\setminus i}}{v^{\setminus i} 
+			+ 1}\right)^2
+			\cdot\left[
+				(1 - r)(\vek{x}_i - \vek{m^{\setminus i}})(\vek{x}_i - \vek{m^{\setminus i}})^T
+				- (v^{\setminus i} + 1)\unity_d
+			\right]
+			+ v^{\setminus i}\unity_d\right] / d \\
+		&=
+			r\left(\frac{v^{\setminus i}}{v^{\setminus i} + 1}\right)^2
+			\cdot\left[(1 - r)
+			\text{Tr}\left[(\vek{x}_i - \vek{m^{\setminus i}})
+									   (\vek{x}_i - \vek{m^{\setminus i}})^T\right] / d
+				- (v^{\setminus i} + 1)\right]
+			+ v^{\setminus i} \\
+		&=  v^{\setminus i}
+			- r \frac{(v^{\setminus i})^2}{v^{\setminus i} + 1}
+			+ \frac{r(1 - r)}{d}
+				\left(\frac{v^{\setminus i}}{v^{\setminus i} + 1}\right)^2
+				||\vek{x}_i - \vek{m^{\setminus i}}||^2
+		\label{eq:vnew}
+\end{align}
+
+Eqs.~\eqref{eq:after_c}, \eqref{eq:mnew} and \eqref{eq:vnew} give us the 
+updated parameters for $\mathcal{Q}$, which was the objective of this 
+step.
+
+\subsection*{Update formula for $\tilde{f}_i$}
+
+\subsection*{Formula for the normalisation constant}
+
+TODO: how the results are read off
+
+\section{Implementation}
+\label{sec:impl}
+
+TODO: how some parameters were instantiated, how uniform factors were 
+expressed as Gaussians (infinite variance)
+
+TODO: general properties of the implementation: Python, uses numpy, can be 
+configured inside the source code, can be asked to draw plots interactively
+
+TODO: example pictures from the algorithm
+
+TODO: problems encountered (negative variance, infinities, unsensible 
+normalisation constants)\dots but the algorithm converges well. Include 
+some statistics of convergence properties (or, say, distance of the 
+estimated mean from the true one)
+
+\bibliographystyle{acm}
+\bibliography{clutter}
+
+\end{document}
