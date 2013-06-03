@@ -1,0 +1,319 @@
+%settings are located in begin_settins.tex and end_settings.tex files
+%%%%%%%%%%%%%%%%% do not remove! %%%%%%%%%%%
+\input{begin_settings}
+\maketitle  % turn it on at the end
+
+\chapter{Gibbs sampling in~probit~regression}
+\label{cha:gibbs_sampling_for_probit_regression}
+
+
+\section{Introduction} 
+\label{sec:introduction}
+In this short document we would like to introduce {\it Bayesian attitude} to {\it probit regression}. In {\it Bayesian theory} we are  trying to derive a distribution for an unknown random variable from already known random variables. 
+
+In our example we would like to know a posterior distribution for the labels $Y$ in the~probit regression model. We will derive the posterior distribution from the features $X$ and the prior on weights $w$. We will estimate the~posterior distribution from observations $\{1,\ldots,N\}$ where we saw label $y_i$ as well as features $x_i$ for each of observation $i$. We also suppose that each observation from $\{1,\ldots,N\} \cup \{new\}$ are $iid$. 
+
+In fact, we are interested in predictive distribution for the label $y_new$ for the unseen features $x_new$ based on the knowledge of posterior distribution. Unfortunately, it is typical that the computation of the predictive as well as posterior distribution is intractable or even impossible. We will use {\it Gibbs sampling} as a approximation method of drawing samples from the posterior distribution. Obtaining samples from posterior distribution for $Y$ allows us to approximate posterior distribution and later compute predictive distribution for random variable $y_{new}$.
+
+
+% section introduction (end)
+
+\section{Probit model}
+What is a probit model?
+\begin{quotation}
+    Probit model is a type of regression where the dependent variable can only take two values.
+\end{quotation}\cite{wiki_probit}
+In our example, the values will be $\{0,1\}$.
+
+\begin{figure}[!hb]
+\centering
+\includegraphics[width=0.8\textwidth]{probit2D}
+\caption{Probit regression in dimensions $x_1$ and $x_2$. The separation line is determined by random variable $w$. As expected, the separation line 
+ is located with the highest probability between the two differently labeled clusters.}
+\label{fig:probit2D}
+\end{figure}
+
+\begin{defn}
+    In {\bf probit model} we assume that we can describe binary class variable $y_i$ as function of features $x_i$ and parameters $w$:
+\begin{align}
+    \forall i\in\{1,\ldots,N\} \Pr(y_i=1 \mid x_i) = \Phi(x_i' * w) \\
+    \text{or as vectors: } \Pr(Y=1 \mid X) = \Phi(X' * w)
+\end{align}
+where $\Phi$ is CDF of standard normal distribution.
+\footnote{I will be using $x'$ instead of $x^T$ as mark for vector or matrix transposition.}
+\end{defn}
+
+For given features $x_i$ we have the distribution $P(y_i=1 \mid x_i, w)$ which tells us how is probably 
+that the observation falls in class $1$ and not in class $0$ given the features $x_i$ and weights $w$.
+
+Usually, the parameters $w$ are estimated by maximum likelihood. Denote them $w^*$. For new features $x_{new}$ we would give label $y_{new}$ according 
+weights $w*$ and the features $x_{new}$. The problem is that we do not consider any other values for $w*$ even if they are just slightly less probably than $w*$. 
+
+However, in Bayesian theory we put prior on $w$, which means that we consider every possible value for weights $w$, because $w$ is a random variable. 
+Instead of computing maximum likelihood from already seen data, we compute posterior distribution in equation~\ref{eq:posterior}.
+\begin{equation}\label{eq:posterior}
+    P(Y \mid X, w) 
+\end{equation}
+In our case we suppose that $w$ is normally distributed.
+\begin{equation}\label{eq:prior_weights}
+w \sim N(\mu_0, \Sigma_0)
+\end{equation}
+
+Usually, the posterior probability~\ref{eq:posterior} is estimated from the likelihood probability as
+\begin{equation}
+    P(Y \mid X, w) = \frac{P(w \mid X,Y)}{P(w)},
+\end{equation}
+where we know $P(w)$ from the~prior~\ref{eq:prior_weights}.
+With the posterior probability we may be able to compute predictive distribution 
+$P(x_{new} \mid X) = \int_w P(x_{new}) * P(w \mid X) \mathrm{d} w $.
+
+The problem is that we are not able to compute the posterior efficiently. 
+Not even for the latent variable model, which we will introduce in section~\ref{sec:introducing_latent_variale}.
+
+However, with Gibbs sampler and latent model we will be able to draw samples from posterior distribution.
+
+Let's recapitulate what is what in probit model on example from Figure~\ref{fig:probit2D}.
+The weights, $w$, are $d$-dimensional radnom variable. In case of Figure~\ref{fig:probit2D} $d=2$.
+The $X$ is $(d*N)$-dimensional matrix, where column $i$ contains $d$-dimensional features $x_i$ of observation $i$.
+The $Y$ is $N$-dimensional random vector with output values $y_i \in \{0,1\}$, where $N$ is the number of already seen data ($x_i$ and $y_i$).
+The observation $x_i$ on coordinates $x\_1_i,x\_2_i$ is labeled with $1$ if it is blue or $0$ if it is red.
+
+In the Figure~\ref{fig:probitGM} we are illustrating on graphical model the Bayesian attitude to the probit model.
+As you can see each observation $y_i$ of $N$ observation depends on its features $xi$ and also on the weights $w$.
+We put prior on weights as random variable according a distribution with parameters $\mu_0$ and $\Sigma_0$.
+The graphical also models depicts that we observe 
+$N$ times the features $x_i$ and the class label $y_i$ for different $iid$ observations $i$.
+
+\begin{figure}[!hb]
+\centering
+\input{probitGM}
+\caption{Graphical model for Probit}
+\label{fig:probitGM}
+\end{figure}
+
+\section{Introducing latent variable $\overset{\sim}{Y}$ }
+\label{sec:introducing_latent_variale}
+In fact, the model with latent variable is just technical trick.
+Later, in section~\ref{sec:sampling_from_marginal_distribution_in_probit_example} we will find out that the Gibbs sampler 
+needs to draw samples from marginal distributions for each variable of joint distribution we want to sample from.
+In the probit model we do not know how to compute the marginal distributions.
+
+However we are able to draw samples from marginal distributions of the model with latent variable,
+which we will introduce in this section.
+Furthermore, we can easily convert the latent model to probit model.
+So if we can draw samples from latent model we can draw samples from the probit model, which is our goal.
+
+Let us introduce the latent model and remind priors on distribution for the random variables.
+\begin{equation}\label{eq:lat}
+    \overset{\sim}{Y} = X' * w + \varepsilon, 
+\end{equation}
+where $X$ is the matrix of features, \\
+we suppose that weights are distributed according the~equation~\ref{eq:prior_weights} \\ 
+and  we suppose noisy labeling without loss of generality 
+\footnote{Without loss of generality we can assume $N(0,1)$ instead of $\varepsilon \sim N(0, S)$. 
+    If we needed to estimate weights $w$ for $N(0, S)$ introduced in the~graphical model we will estimate weights $w^h$ for $N(0,1)$ and set $w = S*w^h$}
+\begin{equation}\label{eq:noise}
+\varepsilon \sim N(0, 1).
+\end{equation}
+
+Now realize that we can draw samples from the probit model if we can draw samples from $\overset{\sim}{y_{i}}$
+by applying following rule.
+
+We claimed that we can derive the distribution of probit model from distribution of the latent model:
+\begin{equation}\label{eq:model_equivalence}
+    y_i = 
+     \begin{cases} 
+         1 & \text{if }\overset{\sim}{y_i} > 0 \ \text{ i.e. } - \varepsilon < x_i' * w, \\
+         0 &\text{otherwise.} 
+     \end{cases}
+\end{equation}
+So, let us prove it:
+\begin{eqnarray}
+    P(y_i=1 \mid x_i)= P(\overset{\sim}{y_i} > 0 ) = P(x_i' * w + \varepsilon > 0) \\
+    = P(\varepsilon > - x_i' * w) \\
+    = P(\varepsilon > - x_i' * w) \\
+    \text{by symmetry of normal distribution} \\
+    = P(\varepsilon < x_i' * w) \\
+    = \Phi(x_i' * w)
+\end{eqnarray}
+
+
+
+\section{Sampling from model with latent variable} 
+\label{sec:sampling_from_model_with_latent_variable}
+Let us shortly recapitulate facts. We know that feature vectors $x_i$ are represented compactly in matrix $X$. There is label $y_i \in \{0,1\}$ for each of vector $x_i$ from the features vectors. Labels are compactly represented as $Y$. We assume that $\varepsilon$, $w$ random variables are normally distributed and we do not know parameters for $w$ yet.
+
+Firstly, we will introduce the Gibbs sampling algorithm. Secondly, we will derive the marginal distributions needed by Gibbs sampling. Finally, at the end we will summarize what can we deduce from the samples about distributions which interest us.
+
+\subsection*{Gibbs sampler}
+\label{sub:gibbs_sampler}
+\begin{quote}
+The point of Gibbs sampling is that given a multivariate distribution it is simpler to sample from a conditional distribution than to marginalize by integrating over a joint distribution. \cite{wiki_gibbs}
+\end{quote}
+We will describe Gibbs sampling algorithm and claim some facts. We will not proved the properties. See the references into literature for details. However, we will derive the in detail the marginal distributions which are necessary for running Gibbs sampler.
+
+\subsubsection*{How does Gibbs sampling work?}
+Suppose we want to sample from $Z = \{z_1, z_2, \ldots, z_l\}$ with distribution $P(z_1, z_2, \ldots, z_l)$. Let us denote the $k^{th}$ sample from $Z$ by $Z^k = \{z_1^k, z_2^k, \ldots, z_l^k\}$. The Gibbs algorithm will sample $Z^k$ according pseudo code below. For large enough $k$ the distribution, from which the samples $Z^k, Z^{k+1}, \ldots $ are drawn, will converge to distribution $P(z_1, z_2, \ldots, z_l)$. 
+
+
+\begin{algorithm}
+\caption{Gibbs algorithm} \label{gibbs_pseudo}
+\begin{algorithmic}
+\State k=0
+\State $Z^k$ = InitValues()
+\Comment{Somehow initialize the vector $:Z^k$}
+\While{Samples did not converge}
+    \State  k++
+    \Comment{We are sampling $k^{th}$ sample}
+    \For{ $j \in \{1,\ldots, l\}$ }
+        \State $z_j^k \sim P(z_j^k  \mid z_1^k,z_2^k, \ldots, z_{j-1}^k, z_{j+1}^{k-1}, \ldots, z_{n}^{k-1})$
+        \Comment{Sampling $z_j^k$}
+    \EndFor
+\EndWhile
+\end{algorithmic}
+\end{algorithm}
+
+In following section we will focus on how to sample from the marginal distributions. Now let us deal with the unspecified parts in the algorithm description apart from sampling from marginal distributions.
+
+Firstly, initializing the values is not very problematic. Gibbs sampling is guaranteed to converge for any values. On the other hand, reasonable settings like mean or mode, if we know them,  gives faster convergence than outliers. \cite{gibbs_intro}
+
+Secondly, the stopping condition for Gibbs algorithm is much harder problem. There are several heuristics like autocorrelation metrics or measuring discrepancy between sampled and the desired distribution which are trying to detect whether the samples have converged to stable distribution. It can be shown that for Gibbs sampler the stable distribution is in fact the desired $P(Z)$ distribution. \cite{explaining_gibbs}
+
+% subsection introducing_latent_variale (end)
+
+\subsection{Sampling from marginal distribution in Probit example} 
+\label{ssec:sampling_from_marginal_distribution_in_probit_example}
+At the beginning we will give again short and dense overview of facts in few equations. Later we will compute marginals for joint probability $P(w, \overset{\sim}{Y} \mid X, Y)$. The marginals which we need to compute are 
+\begin{itemize}
+    \item $P(\overset{\sim}{Y} \mid w, X, Y)$.
+    \item $P(w \mid X, \overset{\sim}{Y}, Y)$.
+\end{itemize}
+
+We assume probit model for $Y$ binary random variable.
+\begin{equation}
+    Y = \Phi(X' * w) 
+\end{equation}
+
+where is $w$ with parameters from equation~\ref{eq:prior_weights}.
+Further, without loss of generality we can assume that the latent model is normally distributed with covariance 1 as described in equation~\ref{eq:cov1}.
+\footnote{We can compensate different variance from 1 by setting different variance in prior on weights~$w$ \todo{add equation}}
+\begin{equation}\label{eq:cov1}
+    \overset{\sim}{y_i} \mid x_i, w \overset{iid}{\sim} N(x_i' * w, 1)
+\end{equation}
+
+From transformation between labels $y_i$ and latent random variable $\overset{\sim}{y_i}$ in equation~\ref{eq:model_equivalence} we derive distribution described in terms of truncated normal.
+\footnote{More about truncated normal distribution on \href{http://en.wikipedia.org/wiki/Truncated_normal_distribution}{Wikipedia}}
+\begin{equation}
+    y_i \mid x_i, w \overset{ind}{\sim} 1(\overset{\sim}{y_i} \ge 0)
+\end{equation}
+
+\begin{thm}
+    All full marginal distributions with variables $w$, $\overset{\sim}{Y}$ for~joint probability $P(w, \overset{\sim}{Y} \mid X, Y)$ are distributed according
+\begin{enumerate}
+\item
+    \begin{equation}\label{eq:margin_w}
+    w \mid \overset{\sim}{Y}, X, Y \sim N(\hat{w},\hat{\Sigma})
+    \end{equation} 
+    where 
+    $ \hat{\Sigma} = {(\Sigma_0^{-1} + X' * X)}^{-1} $ 
+    and
+    $ \hat{w} = \hat{\Sigma} ( \Sigma_0^{-1}*\mu_0 + X' * \overset{\sim}{y} ) $
+
+\item 
+    \begin{equation}\label{eq:margin_ytilda}
+        \overset{\sim}{Y} \mid w, X, Y \text{ has density } \\
+        \prod_{i=1}^{N} Z * N(x_i, 1) * {(1(\overset{\sim}{y_i} \ge 0))}^{y_i} * {(1(\overset{\sim}{y_i} < 0))}^{1-y_i}
+    \end{equation} 
+    where $Z$ is normalizing constant.
+\end{enumerate}
+\end{thm}
+
+\begin{proof}
+Let us prove the marginal distribution from equation~\ref{eq:margin_w} 
+We start with
+\begin{equation}
+    P(w \mid \overset{\sim}{Y}, X, Y) 
+\end{equation}
+and by applying the Bayes rule and omitting the denominator we get
+\begin{equation}
+    \propto   P(\overset{\sim}{Y}, Y \mid X, w) * P(w).
+\end{equation}
+We further expand the first probability by chain rule
+\begin{equation}
+    \propto   P(\overset{\sim}{Y} \mid X, w) * P(Y \mid \overset{\sim}{Y},  X, w) * P(w).
+\end{equation}
+The middle term will disappear, because it is our deterministic way how to convert hidden model to probit model.
+\begin{equation}
+    \propto   P(w) * P(\overset{\sim}{Y} \mid X, w)
+\end{equation}
+kWe can write down the prior on weights. Because of $iid$ distributed observations we can write the product of their distributions at points $\overset{\sim}{y_i}$. Further, we can \todo{without loss of generality assume that the latent model has variance 1 for each observation}.
+\begin{equation}
+    = N(\mu_0, \Sigma_0) * \prod_{i=1}^N N(\overset{\sim}{y_i} \mid w' * x_i, 1)
+\end{equation}
+\begin{equation}
+    = N(w  \mid  \hat{w}, \hat{\Sigma})
+\end{equation}
+\todo{explain it}
+where $\hat{\Sigma} = (\Sigma_0^{-1} + X'X)^{-1}$ and $\hat{w} = \hat{\Sigma}(\Sigma_0^{-1}\mu_0 + X'y)$
+\end{proof}
+
+\begin{proof}
+Let us prove the second marginal distribution from equation~\ref{eq:margin_ytilda} 
+\begin{equation}
+P(\overset{\sim}{Y} \mid X, Y, w) \propto
+\end{equation}
+We continue by using Bayes rule in form $ P(A \mid C, B) = \frac{P( B \mid A, C) * P(A|C)}{P(B)}$ 
+\begin{equation}
+    \propto P(\overset{\sim}{Y} \mid X, w) * P(Y \mid X,\overset{\sim}{Y}, w)
+\end{equation}
+Now we can substitute for the conditional probabilities with distributions
+\begin{equation}
+    P(\overset{\sim}{y} \mid x,w) = \prod_{i=1}^{N}N(\overset{\sim}{y_i} \mid w^T*x_i, 1) \text{ and } 
+    P(y \mid x,w,\overset{\sim}{y}) = \prod_{i=1}^{N}{(1_{(\overset{\sim}{y_i} \ge 0)})}^{y_i} * {(1_{(\overset{\sim}{y_i} < 0)})}^{1-y_i}.
+\end{equation}
+It leads to
+\begin{equation}
+    \propto \prod_{i=1}^{N}N(\overset{\sim}{y_i} \mid w^T*x_i, 1) * 
+    \prod_{i=1}^{N}{(1_{(\overset{\sim}{y_i} \ge 0)})}^{y_i} * {(1_{(\overset{\sim}{y_i} < 0)})}^{1-y_i}.
+\end{equation}
+
+It means that distributions $ P(\overset{\sim}{y_i} \mid  x_i, y_i, w) $ are conditionally independent with truncated normal distribution.
+\end{proof}
+
+    % slide 6 NPFL108-slidesLexture6-7-SamplingMethods.pdf
+
+\section{Summary} 
+\label{sec:summary}
+At the beginning we wanted to compute the posterior probability~\ref{eq:posterior}.
+We come up with the idea of Gibbs sampling which has the advantage that it needs only all
+full marginal distributions to sample from the joint distribution or some of the marginals.
+The marginal distributions are generally in more simpler form. Further,sampling is usually much more
+feasible approximation than other alternatives. 
+
+In our example, we used a latent variable model, because we were not able to derive the distributions for the marginals in probit model.
+We computed the marginals for latent variable model and then we used the Gibbs sampling method
+to draw sample from the posterior distribution.
+
+Usually, we are not satisfied with the posterior distribution and we want to compute the predictive distribution.
+From the samples we estimate the parameters of the posterior distribution and then use it to compute predictive distribution.
+\todo{PREDICTIVE Distribution}
+
+
+% section summary (end)
+
+% section sampling_from_marginal_distribution_in_probit_example (end)
+
+
+\section*{References}
+\begin{itemize}
+    \item Git repository for this article \url{https://github.com/bayesian-inference/notes}
+    \item This article was written for the \href{https://sites.google.com/site/filipjurcicek/teaching/bayesian-inference}{Bayesian Inference course at MFF UK}
+    \item This article is based on Sara's Wade talk for the Bayesian Inference course recorded on \href{http://youtu.be/rsUt9uV6j70?t=12m18s}{Youtube}
+    \item The Figure~\ref{fig:probit2D} is taken from \href{https://sites.google.com/site/filipjurcicek/teaching/bayesian-inference/NPFL108-slidesLecture3.pdf?attredirects=0}{slides of Jose Miguel Hernandez-Lobato} given for Bayesian Inference course
+\end{itemize}
+\bibliographystyle{apalike}
+\bibliography{refer}
+
+
+% chapter gibbs_sampling_for_probit_regression (end)
+\end{document}

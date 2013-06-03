@@ -1,0 +1,121 @@
+% mainfile: main.tex
+% author Ondrej Platek 2012, settings are without any warranty
+
+%% Verze pro jednostranný tisk:
+% Okraje: levý 40mm, pravý 25mm, horní a dolní 25mm
+% (ale pozor, LaTeX si sám přidává 1in)
+\documentclass[12pt,a4paper]{report}
+\setlength\textwidth{145mm}
+\setlength\textheight{247mm}
+\setlength\oddsidemargin{15mm}
+\setlength\evensidemargin{15mm}
+\setlength\topmargin{0mm}
+\setlength\headsep{0mm}
+\setlength\headheight{0mm}
+% \openright zařídí, aby následující text začínal na pravé straně knihy
+\let\openright=\clearpage
+
+%% Pokud tiskneme oboustranně:
+% \documentclass[12pt,a4paper,twoside,openright]{report}
+% \setlength\textwidth{145mm}
+% \setlength\textheight{247mm}
+% \setlength\oddsidemargin{15mm}
+% \setlength\evensidemargin{0mm}
+% \setlength\topmargin{0mm}
+% \setlength\headsep{0mm}
+% \setlength\headheight{0mm}
+% \let\openright=\cleardoublepage
+
+%% Pokud používáte csLaTeX (doporučeno):
+% \usepackage{czech}
+%% Pokud nikoliv:
+%\usepackage[czech]{babel}
+%\usepackage[T1]{fontenc}
+
+%% Použité kódování znaků: obvykle latin2, cp1250 nebo utf8:
+\usepackage[utf8x]{inputenc}
+
+%% Ostatní balíčky
+\usepackage{draftwatermark} % really cool draftmark
+\SetWatermarkScale{4}
+\SetWatermarkLightness{0.7}
+%\SetWatermarkText{Draft!}
+
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{amsthm,amsmath,algpseudocode}
+\usepackage{cite}
+
+%% Packages needed for Latex-Draw 
+%% pretty cool drawing - latex-generating program
+\usepackage[usenames,dvipsnames,pdf]{pstricks}
+\usepackage{epsfig}
+\usepackage{pst-grad} % For gradients
+\usepackage{pst-plot} % For axes
+\usepackage[chapter]{algorithm}
+
+
+%% package hyperref, links in PDF,
+%% but mainly stores content metadata including content into PDF
+\usepackage[unicode]{hyperref}   % HAS TO BE THE LAST PACKAGE 
+\hypersetup{pdftitle=Probit regression with Gibbs sampling}
+\hypersetup{pdfauthor=Ondřej Plátek}
+
+\title{Probit regression with Gibbs sampling}
+\date{1.6.2013}
+\author{Ondřej Plátek}
+
+%%% Drobné úpravy stylu
+
+% Tato makra přesvědčují mírně ošklivým trikem LaTeX, aby hlavičky kapitol
+% sázel příčetněji a nevynechával nad nimi spoustu místa. Směle ignorujte.
+\makeatletter
+\def\@makechapterhead#1{
+  {\parindent \z@ \raggedright \normalfont
+   \Huge\bfseries \thechapter. #1
+   \par\nobreak
+   \vskip 20\p@
+}}
+\def\@makeschapterhead#1{
+  {\parindent \z@ \raggedright \normalfont
+   \Huge\bfseries #1
+   \par\nobreak
+   \vskip 20\p@
+}}
+\makeatother
+
+% Toto makro definuje kapitolu, která není očíslovaná, ale je uvedena v obsahu.
+\def\chapwithtoc#1{
+\chapter*{#1}
+\addcontentsline{toc}{chapter}{#1}
+}
+
+\def\todo#1{
+\emph{\color{red} TODO: #1}
+}
+
+\def\todon#1{
+  \todo{#1 \\}
+}
+
+% references to footnote
+% usage: \footnoteremember{myfootnote}{This is my footnote} and then \footnoterecall{myfootnote} 
+\newcommand{\footnoteremember}[2]{
+    \footnote{#2}
+    \newcounter{#1}
+    \setcounter{#1}{\value{footnote}}
+}
+\newcommand{\footnoterecall}[1]{
+    \footnotemark[\value{#1}]
+}
+\begin{document}
+\pagestyle{plain}
+\setcounter{page}{1}
+%\tableofcontents %prida obsah
+
+\theoremstyle{plain}
+\newtheorem{thm}{Theorem}[chapter] % reset theorem numbering for each chapter
+
+\theoremstyle{definition}
+\newtheorem{defn}[thm]{Definition} % definition numbers are dependent on theorem numbers
+\newtheorem{exmp}[thm]{Example} % same for example numbers
