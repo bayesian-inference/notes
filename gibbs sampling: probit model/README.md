@@ -24,7 +24,7 @@ and it was OK.
 
 TODO
 ----
-Any (constructive) feedback is welcomed. Thanks to Matej and Ondra for reporting the compiling bug.
+Any (constructive) feedback is welcomed. Thanks to Matej and Ondra for reporting the compilation bug.
  * Fix missing explanation, spelling, English
  * Fix code and add it
 
