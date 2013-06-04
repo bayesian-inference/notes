@@ -12,6 +12,12 @@ On Linux with Texlive installed type
 ```sh
 make
 ```
+Change command `TEX_CALL` to `xetex` if you experience problems.
+If you still can not compile pdf, write me!
+
+I was compiling with with the default option pdflatex 
+`pdfTeX 3.1415926-2.4-1.40.13 (TeX Live 2012/Debian)`
+and it was OK.
 
 TODO
 ----

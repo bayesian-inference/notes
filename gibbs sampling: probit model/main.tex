@@ -1,7 +1,6 @@
 %settings are located in begin_settins.tex and end_settings.tex files
 %%%%%%%%%%%%%%%%% do not remove! %%%%%%%%%%%
 \input{begin_settings}
-\maketitle  % turn it on at the end
 
 \chapter{Gibbs sampling in~probit~regression}
 \label{cha:gibbs_sampling_for_probit_regression}
@@ -252,8 +251,8 @@ We continue by using Bayes rule in form $ P(A \mid C, B) = \frac{P( B \mid A, C)
 \end{equation}
 Now we can substitute for the conditional probabilities with distributions
 \begin{equation}
-    P(\overset{\sim}{y} \mid x,w) = \prod_{i=1}^{N}N(\overset{\sim}{y_i} \mid w^T*x_i, 1) \text{ and } 
-    P(y \mid x,w,\overset{\sim}{y}) = \prod_{i=1}^{N}{(1_{(\overset{\sim}{y_i} \ge 0)})}^{y_i} * {(1_{(\overset{\sim}{y_i} < 0)})}^{1-y_i}.
+    P(\overset{\sim}{Y} \mid X, w) = \prod_{i=1}^{N}N(\overset{\sim}{y_i} \mid w^T*x_i, 1) \text{ and } 
+    P(Y \mid X,\overset{\sim}{Y}, w) = \prod_{i=1}^{N}{(1_{(\overset{\sim}{y_i} \ge 0)})}^{y_i} * {(1_{(\overset{\sim}{y_i} < 0)})}^{1-y_i}.
 \end{equation}
 It leads to
 \begin{equation}
