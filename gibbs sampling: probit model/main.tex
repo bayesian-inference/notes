@@ -28,8 +28,7 @@ In our example, the values will be $\{0,1\}$.
 \begin{figure}[!hb]
 \centering
 \includegraphics[width=0.8\textwidth]{probit2D}
-\caption{Probit regression in dimensions $x_1$ and $x_2$. The separation line is determined by random variable $w$. As expected, the separation line 
- is located with the highest probability between the two differently labeled clusters.}
+\caption{Probit regression in dimensions $x_1$ and $x_2$. The separation line is determined by random variable $w$. As expected, the separation line is located with the highest probability between the two differently labeled clusters.}
 \label{fig:probit2D}
 \end{figure}
 
@@ -43,14 +42,11 @@ where $\Phi$ is CDF of standard normal distribution.
 \footnote{I will be using $x'$ instead of $x^T$ as mark for vector or matrix transposition.}
 \end{defn}
 
-For given features $x_i$ we have the distribution $P(y_i=1 \mid x_i, w)$ which tells us how is probably 
-that the observation falls in class $1$ and not in class $0$ given the features $x_i$ and weights $w$.
+For given features $x_i$ we have the distribution $P(y_i=1 \mid x_i, w)$ which tells us how is probably that the observation falls in class $1$ and not in class $0$ given the features $x_i$ and weights $w$.
 
-Usually, the parameters $w$ are estimated by maximum likelihood. Denote them $w^*$. For new features $x_{new}$ we would give label $y_{new}$ according 
-weights $w*$ and the features $x_{new}$. The problem is that we do not consider any other values for $w*$ even if they are just slightly less probably than $w*$. 
+Usually, the parameters $w$ are estimated by maximum likelihood. Denote them $w^*$. For new features $x_{new}$ we would give label $y_{new}$ according weights $w*$ and the features $x_{new}$. The problem is that we do not consider any other values for $w*$ even if they are just slightly less probably than $w*$. 
 
-However, in Bayesian theory we put prior on $w$, which means that we consider every possible value for weights $w$, because $w$ is a random variable. 
-Instead of computing maximum likelihood from already seen data, we compute posterior distribution in equation~\ref{eq:posterior}.
+However, in Bayesian theory we put prior on $w$, which means that we consider every possible value for weights $w$, because $w$ is a random variable. Instead of computing maximum likelihood from already seen data, we compute posterior distribution in equation~\ref{eq:posterior}.
 \begin{equation}\label{eq:posterior}
     P(Y \mid X, w) 
 \end{equation}
@@ -67,8 +63,7 @@ where we know $P(w)$ from the~prior~\ref{eq:prior_weights}.
 With the posterior probability we may be able to compute predictive distribution 
 $P(x_{new} \mid X) = \int_w P(x_{new}) * P(w \mid X) \mathrm{d} w $.
 
-The problem is that we are not able to compute the posterior efficiently. 
-Not even for the latent variable model, which we will introduce in section~\ref{sec:introducing_latent_variale}.
+The problem is that we are not able to compute the posterior efficiently. Not even for the latent variable model, which we will introduce in section~\ref{sec:introducing_latent_variale}.
 
 However, with Gibbs sampler and latent model we will be able to draw samples from posterior distribution.
 
@@ -78,11 +73,7 @@ The $X$ is $(d*N)$-dimensional matrix, where column $i$ contains $d$-dimensional
 The $Y$ is $N$-dimensional random vector with output values $y_i \in \{0,1\}$, where $N$ is the number of already seen data ($x_i$ and $y_i$).
 The observation $x_i$ on coordinates $x\_1_i,x\_2_i$ is labeled with $1$ if it is blue or $0$ if it is red.
 
-In the Figure~\ref{fig:probitGM} we are illustrating on graphical model the Bayesian attitude to the probit model.
-As you can see each observation $y_i$ of $N$ observation depends on its features $xi$ and also on the weights $w$.
-We put prior on weights as random variable according a distribution with parameters $\mu_0$ and $\Sigma_0$.
-The graphical also models depicts that we observe 
-$N$ times the features $x_i$ and the class label $y_i$ for different $iid$ observations $i$.
+In the Figure~\ref{fig:probitGM} we are illustrating on graphical model the Bayesian attitude to the probit model. As you can see each observation $y_i$ of $N$ observation depends on its features $xi$ and also on the weights $w$. We put prior on weights as random variable according a distribution with parameters $\mu_0$ and $\Sigma_0$. The graphical also models depicts that we observe $N$ times the features $x_i$ and the class label $y_i$ for different $iid$ observations $i$.
 
 \begin{figure}[!hb]
 \centering
@@ -93,15 +84,9 @@ $N$ times the features $x_i$ and the class label $y_i$ for different $iid$ obser
 
 \section{Introducing latent variable $\overset{\sim}{Y}$ }
 \label{sec:introducing_latent_variale}
-In fact, the model with latent variable is just technical trick.
-Later, in section~\ref{sec:sampling_from_marginal_distribution_in_probit_example} we will find out that the Gibbs sampler 
-needs to draw samples from marginal distributions for each variable of joint distribution we want to sample from.
-In the probit model we do not know how to compute the marginal distributions.
+In fact, the model with latent variable is just technical trick. Later, in section~\ref{sec:sampling_from_marginal_distribution_in_probit_example} we will find out that the Gibbs sampler needs to draw samples from marginal distributions for each variable of joint distribution we want to sample from. In the probit model we do not know how to compute the marginal distributions.
 
-However we are able to draw samples from marginal distributions of the model with latent variable,
-which we will introduce in this section.
-Furthermore, we can easily convert the latent model to probit model.
-So if we can draw samples from latent model we can draw samples from the probit model, which is our goal.
+However we are able to draw samples from marginal distributions of the model with latent variable, which we will introduce in this section. Furthermore, we can easily convert the latent model to probit model. So if we can draw samples from latent model we can draw samples from the probit model, which is our goal.
 
 Let us introduce the latent model and remind priors on distribution for the random variables.
 \begin{equation}\label{eq:lat}
@@ -116,8 +101,7 @@ and  we suppose noisy labeling without loss of generality
 \varepsilon \sim N(0, 1).
 \end{equation}
 
-Now realize that we can draw samples from the probit model if we can draw samples from $\overset{\sim}{y_{i}}$
-by applying following rule.
+Now realize that we can draw samples from the probit model if we can draw samples from $\overset{\sim}{y_{i}}$ by applying following rule.
 
 We claimed that we can derive the distribution of probit model from distribution of the latent model:
 \begin{equation}\label{eq:model_equivalence}
@@ -182,7 +166,7 @@ Secondly, the stopping condition for Gibbs algorithm is much harder problem. The
 % subsection introducing_latent_variale (end)
 
 \subsection{Sampling from marginal distribution in Probit example} 
-\label{ssec:sampling_from_marginal_distribution_in_probit_example}
+\label{sec:sampling_from_marginal_distribution_in_probit_example}
 At the beginning we will give again short and dense overview of facts in few equations. Later we will compute marginals for joint probability $P(w, \overset{\sim}{Y} \mid X, Y)$. The marginals which we need to compute are 
 \begin{itemize}
     \item $P(\overset{\sim}{Y} \mid w, X, Y)$.
@@ -284,18 +268,11 @@ It means that distributions $ P(\overset{\sim}{y_i} \mid  x_i, y_i, w) $ are con
 
 \section{Summary} 
 \label{sec:summary}
-At the beginning we wanted to compute the posterior probability~\ref{eq:posterior}.
-We come up with the idea of Gibbs sampling which has the advantage that it needs only all
-full marginal distributions to sample from the joint distribution or some of the marginals.
-The marginal distributions are generally in more simpler form. Further,sampling is usually much more
-feasible approximation than other alternatives. 
+At the beginning we wanted to compute the posterior probability~\ref{eq:posterior}. We come up with the idea of Gibbs sampling which has the advantage that it needs only all full marginal distributions to sample from the joint distribution or some of the marginals. The marginal distributions are generally in more simpler form. Further,sampling is usually much more feasible approximation than other alternatives. 
 
-In our example, we used a latent variable model, because we were not able to derive the distributions for the marginals in probit model.
-We computed the marginals for latent variable model and then we used the Gibbs sampling method
-to draw sample from the posterior distribution.
+In our example, we used a latent variable model, because we were not able to derive the distributions for the marginals in probit model. We computed the marginals for latent variable model and then we used the Gibbs sampling method to draw sample from the posterior distribution.
 
-Usually, we are not satisfied with the posterior distribution and we want to compute the predictive distribution.
-From the samples we estimate the parameters of the posterior distribution and then use it to compute predictive distribution.
+Usually, we are not satisfied with the posterior distribution and we want to compute the predictive distribution. From the samples we estimate the parameters of the posterior distribution and then use it to compute predictive distribution.
 \todo{PREDICTIVE Distribution}
 
 
