@@ -4,18 +4,20 @@ Gibbs Sampling: Probit regression
 Content
 -------
  * Source files for pdflatex document
- * `gibbs.py` - TODO - I have to fix it, then I will add it.
+ * `gibbs.py` - TODO - I have to fix it and add it (not public yet).
 
-How to compile pdflatex
---------------------
-On Linux with *recent* Texlive type
+How to compile the article to pdf 
+---------------------------------
+On Linux with *recent* Texlive compile pdf by running: 
 ```sh
 # from directory whatsoever_path/notes/gibbs\ sampling:\ probit\ model
-make
+$ make
 ```
+
+It will create the `main.pdf` which is the article.
+
 Change command `TEX_CALL` to `xetex` if you experience problems.
 If you still can not compile pdf, write me!
-
 I was compiling with with the default option pdflatex 
 `pdfTeX 3.1415926-2.4-1.40.13 (TeX Live 2012/Debian)`
 and it was OK.
