@@ -8,8 +8,9 @@ Content
 
 How to compile pdflatex
 --------------------
-On Linux with Texlive installed type
+On Linux with *recent* Texlive type
 ```sh
+# from directory whatsoever_path/notes/gibbs\ sampling:\ probit\ model
 make
 ```
 Change command `TEX_CALL` to `xetex` if you experience problems.
@@ -21,7 +22,7 @@ and it was OK.
 
 TODO
 ----
-Any (constructive) feedback is welcomed
+Any (constructive) feedback is welcomed. Thanks to Matej and Ondra for reporting the compiling bug.
  * Fix missing explanation, spelling, English
  * Fix code and add it
 
