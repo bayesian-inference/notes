@@ -47,14 +47,14 @@ Usually, the parameters $w$ are estimated by maximum likelihood. Denote them $w^
 
 However, in Bayesian theory we put prior on $w$, which means that we consider every possible value for weights $w$, because $w$ is a random variable. Instead of computing maximum likelihood from already seen data, we compute posterior distribution in equation~\ref{eq:posterior}.
 \begin{equation}\label{eq:posterior}
-    P(Y \mid X, w) 
+    P(w \mid X, Y) 
 \end{equation}
 In our case we suppose that $w$ is normally distributed.
 \begin{equation}\label{eq:prior_weights}
 w \sim N(\mu_0, \Sigma_0)
 \end{equation}
 
-Usually, the posterior probability~\ref{eq:posterior} is estimated from the likelihood probability as
+Usually, the posterior probability~\ref{eq:posterior} is estimated from the likelihood as
 \begin{equation}
     P(Y \mid X, w) = \frac{P(w \mid X,Y)}{P(w)},
 \end{equation}
