@@ -1,0 +1,978 @@
+#LyX 2.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 413
+\begin_document
+\begin_header
+\textclass article
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry false
+\use_amsmath 1
+\use_esint 1
+\use_mhchem 1
+\use_mathdots 1
+\cite_engine basic
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\use_refstyle 1
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\secnumdepth 2
+\tocdepth 2
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Message passing in clique trees
+\end_layout
+
+\begin_layout Itemize
+an alternative approach to Variable-Elimination
+\end_layout
+
+\begin_layout Itemize
+manipulation of factors is a basic computational step
+\end_layout
+
+\begin_layout Itemize
+clique tree: a global data structure for scheduling these operations
+\end_layout
+
+\begin_layout Itemize
+all operations can be performed on normalized as well as unnormalized measures
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+the unnormalized measure (unnormalized joint probability):
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+\begin_inset Formula $\tilde{P_{\Phi}}(\mathcal{X})={\textstyle \sum_{\phi_{i}\in\Phi}\phi_{i}(\mathbf{X_{i}})}$
+\end_inset
+
+, where 
+\begin_inset Formula $\mathcal{X}$
+\end_inset
+
+ is a set of all variables, 
+\begin_inset Formula $\Phi$
+\end_inset
+
+ set of all factors and 
+\begin_inset Formula $\mathbf{X_{i}}$
+\end_inset
+
+ set of variables in a scope of the factor 
+\begin_inset Formula $\phi_{i}$
+\end_inset
+
+
+\end_layout
+
+\end_deeper
+\end_deeper
+\begin_layout Section
+Message passing in clique trees 
+\begin_inset Formula $\Leftrightarrow$
+\end_inset
+
+ Variable-Elimination
+\end_layout
+
+\begin_layout Standard
+In this section I would like to show that message passing in clique trees
+ is an approach how to compute marginals of a joint probability distribution,
+ equivalent to variable-elimination.
+\end_layout
+
+\begin_layout Subsection
+Variable-Elimination algorithm
+\end_layout
+
+\begin_layout Standard
+An algorithm to compute marginals from a joint probability distribution.
+\end_layout
+
+\begin_layout Subsubsection*
+Example:
+\end_layout
+
+\begin_layout Standard
+We would like to compute 
+\begin_inset Formula $P(C)$
+\end_inset
+
+ for a distribution represented by a Markov Net in Figure (TODO).
+\end_layout
+
+\begin_layout Standard
+Instead of computing normalized measure 
+\begin_inset Formula $P(C)$
+\end_inset
+
+ we can put off the normalization at the very end and work with unnormalized
+ measures (
+\begin_inset Formula $\tilde{P}$
+\end_inset
+
+).
+ The marginal of 
+\begin_inset Formula $C$
+\end_inset
+
+ is simply a joint distribution after marginalizing out all variables except
+ for 
+\begin_inset Formula $C$
+\end_inset
+
+.
+ Joint distribution is defined as a product of all factors.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\tilde{P}(C)=\sum_{A,B,D,E}\tilde{P}(A,B,C,D,E)=\sum_{A,B,D,E}\phi(A,B)\phi(B,C)\phi(B,E)\phi(C,D)\phi(C,E)=
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+We eliminate all variables except for 
+\begin_inset Formula $C$
+\end_inset
+
+ one after another.
+ We pick a variable 
+\begin_inset Formula $A$
+\end_inset
+
+ to start with.
+ We can group all factors which 
+\begin_inset Formula $A$
+\end_inset
+
+ participates in (in this case just 
+\begin_inset Formula $\phi(A,B)$
+\end_inset
+
+), multiply them all into a single factor 
+\begin_inset Formula $\psi_{1}(A,B)=\phi(A,B)$
+\end_inset
+
+ and marginalize out 
+\begin_inset Formula $A$
+\end_inset
+
+ by summing over values of 
+\begin_inset Formula $A$
+\end_inset
+
+ to get a new factor 
+\begin_inset Formula $\tau_{1}(B)=\sum_{A}\psi_{1}(A,B)$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+=\sum_{B,D,E}\phi(B,C)\phi(B,E)\phi(C,D)\phi(C,E)\sum_{A}\phi(A,B)=\sum_{B,D,E}\phi(B,C)\phi(B,E)\phi(C,D)\phi(C,E)\tau_{1}(B)=
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+We proceed by eliminating 
+\begin_inset Formula $B$
+\end_inset
+
+, which again consists of a regroupin, multiplying to a new factor 
+\begin_inset Formula $\psi_{2}(B,C,E)=\phi(B,C)\phi(B,E)\tau_{1}(B)$
+\end_inset
+
+ and marginalizing out 
+\begin_inset Formula $B$
+\end_inset
+
+ to get a new factor 
+\begin_inset Formula $\tau_{2}(C,E)=\sum_{B}\psi_{1}(B,C,E)$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+=\sum_{D,E}\phi(C,D)\phi(C,E)\sum_{B}\phi(B,C)\phi(B,E)\tau_{1}(B)=\sum_{D,E}\phi(C,D)\phi(C,E)\tau_{2}(C,E)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+We will continue in the same manner until we eliminate all variables except
+ for 
+\begin_inset Formula $C$
+\end_inset
+
+.
+ The resulting function of 
+\begin_inset Formula $C$
+\end_inset
+
+ is then an unnormalized marginal distribution 
+\begin_inset Formula $\tilde{P}(C)$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Clique tree
+\end_layout
+
+\begin_layout Standard
+We have to define a basic structure message passing processes on - a clique
+ tree.
+\end_layout
+
+\begin_layout Description
+Definition Clique tree is an undirected tree such that:
+\end_layout
+
+\begin_layout Itemize
+nodes are clusters of variables 
+\begin_inset Formula $C_{i}\subseteq\mathcal{X}=\{X_{1},\ldots,X_{n}\}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+edge between 
+\begin_inset Formula $C_{i}$
+\end_inset
+
+ and 
+\begin_inset Formula $C_{j}$
+\end_inset
+
+ is associated with sepset 
+\begin_inset Formula $S_{i,j}=C_{i}\cap C_{j}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+Family preservation property (FPP): for each factor
+\begin_inset Formula $\phi_{k}\in\Phi$
+\end_inset
+
+, it is assigned to single cluster 
+\begin_inset Formula $C_{\alpha(k)}$
+\end_inset
+
+, so that 
+\begin_inset Formula $Scope[\phi_{k}]\subseteq C_{\alpha(k)}$
+\end_inset
+
+
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+\begin_inset Formula $Scope[\phi(X)]=X,$
+\end_inset
+
+ so it is a set of variables associated with a factor
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+Running intersection property (RIP): for each pair of clusters 
+\begin_inset Formula $C_{i}$
+\end_inset
+
+ and 
+\begin_inset Formula $C_{j}$
+\end_inset
+
+ and variable 
+\begin_inset Formula $X\in C_{i}\cap C_{j}$
+\end_inset
+
+there exists a unique path between 
+\begin_inset Formula $C_{i}$
+\end_inset
+
+ and 
+\begin_inset Formula $C_{j}$
+\end_inset
+
+ for which all clusters and sepsets contain 
+\begin_inset Formula $X$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Variable-Elimination
+\begin_inset Formula $\Rightarrow$
+\end_inset
+
+Message passing in clique trees
+\end_layout
+
+\begin_layout Standard
+We want to show that V-E produces a clique tree.
+ Let us construct a clique tree as follows.
+ The multiplied factor 
+\begin_inset Formula $\psi_{i}$
+\end_inset
+
+ produced in a single step of V-E forms a cluster 
+\begin_inset Formula $C_{i}=Scope(\psi_{i})$
+\end_inset
+
+.
+ We connect clusters 
+\begin_inset Formula $C_{i}$
+\end_inset
+
+ and 
+\begin_inset Formula $C_{j}$
+\end_inset
+
+ by an edge if the factor 
+\begin_inset Formula $\tau_{i}$
+\end_inset
+
+ produced by eliminating 
+\begin_inset Formula $\psi_{i}$
+\end_inset
+
+ is used in making of 
+\begin_inset Formula $\psi_{j}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Description
+Lemma The graph produced by V-E is a tree.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+Proof Each intermediate factor 
+\begin_inset Formula $\psi_{i}$
+\end_inset
+
+ (representing a node) is used only once in computing 
+\begin_inset Formula $\tau_{i}$
+\end_inset
+
+ (an edge) and never appears again.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+Lemma The tree satisifies an FPP.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+Proof Each original factor 
+\begin_inset Formula $\phi_{k}$
+\end_inset
+
+ is used in construction of some 
+\begin_inset Formula $\psi_{i}$
+\end_inset
+
+ (a cluster 
+\begin_inset Formula $C_{\alpha(k)}$
+\end_inset
+
+) and never reappears.
+ All factors 
+\begin_inset Formula $\phi$
+\end_inset
+
+ must be eliminated in V-E.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+Lemma The tree satisfies an RIP.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+Proof Suppose, we have clusters 
+\begin_inset Formula $C,$
+\end_inset
+
+
+\begin_inset Formula $C^{`}$
+\end_inset
+
+ and 
+\begin_inset Formula $C_{X}$
+\end_inset
+
+ and a variable 
+\begin_inset Formula $X$
+\end_inset
+
+, which is in the scope of each of the three clusters.
+ Furthermore, 
+\begin_inset Formula $C_{X}$
+\end_inset
+
+ is a cluster where 
+\begin_inset Formula $X$
+\end_inset
+
+ is eliminated (or the cluster that remains at the end of V-E).
+\begin_inset Newline newline
+\end_inset
+
+
+\begin_inset Formula $C$
+\end_inset
+
+ must take place earlier in the algorithm than 
+\begin_inset Formula $C_{X}$
+\end_inset
+
+.
+ 
+\begin_inset Formula $X$
+\end_inset
+
+ is eliminated in 
+\begin_inset Formula $C_{X}$
+\end_inset
+
+, i.e.
+ all factors containing 
+\begin_inset Formula $X$
+\end_inset
+
+ are multiplied into 
+\begin_inset Formula $C_{X}$
+\end_inset
+
+ and the result of summation does not contain 
+\begin_inset Formula $X$
+\end_inset
+
+ in its scope.
+ Thus, 
+\begin_inset Formula $X$
+\end_inset
+
+ cannot appear after 
+\begin_inset Formula $C_{X}$
+\end_inset
+
+ is created.
+\begin_inset Newline newline
+\end_inset
+
+By assumption, 
+\begin_inset Formula $X\in Scope(C)$
+\end_inset
+
+.
+ 
+\begin_inset Formula $X$
+\end_inset
+
+ is not eliminated in 
+\begin_inset Formula $C$
+\end_inset
+
+, so 
+\begin_inset Formula $X\in Scope(\tau_{C})$
+\end_inset
+
+.
+ A neighbor in the tree just multiplies 
+\begin_inset Formula $\tau_{C}$
+\end_inset
+
+.
+ This happens for all clusters upstream from 
+\begin_inset Formula $C$
+\end_inset
+
+ until 
+\begin_inset Formula $X$
+\end_inset
+
+ is eliminated in 
+\begin_inset Formula $C_{X}$
+\end_inset
+
+.
+ Thus, 
+\begin_inset Formula $X$
+\end_inset
+
+ appears in all clusters between 
+\begin_inset Formula $C$
+\end_inset
+
+ and 
+\begin_inset Formula $C_{X}$
+\end_inset
+
+.
+\begin_inset Newline newline
+\end_inset
+
+The same holds for 
+\begin_inset Formula $C^{`}$
+\end_inset
+
+, so there exist a unique 
+\begin_inset Formula $X$
+\end_inset
+
+ - path between 
+\begin_inset Formula $C$
+\end_inset
+
+ and 
+\begin_inset Formula $C^{`}$
+\end_inset
+
+.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+Corollary Variable-Elimination produces a clique tree.
+\end_layout
+
+\begin_layout Subsection
+Message passing in a clique tree
+\end_layout
+
+\begin_layout Standard
+In the following we show a simplified version of MP algorithm, in which
+ we calculate the unnormalized marginal 
+\begin_inset Formula $\tilde{P}(Scope(C_{root}))$
+\end_inset
+
+ of all variables associated with a given cluster 
+\begin_inset Formula $C$
+\end_inset
+
+ (the root).
+ Given this marginal, we can further compute a marginal of any variables
+ fully contained in the 
+\begin_inset Formula $Scope(C)$
+\end_inset
+
+ by means of V-E.
+\end_layout
+
+\begin_layout Enumerate
+Select a root cluster 
+\begin_inset Formula $C_{root}$
+\end_inset
+
+ containing all variables the marginal that we search for consists of
+\end_layout
+
+\begin_layout Enumerate
+Calculate initial potentials for all 
+\begin_inset Formula $C_{i}$
+\end_inset
+
+:
+\begin_inset Formula 
+\[
+\psi(C_{i})=\prod_{\phi_{j}\in C_{i}}\phi_{j}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Enumerate
+Pass message if possible, i.e.
+ all incoming messages have been received (except for the one from the cluster
+ we are passing to):
+\begin_inset Formula 
+\[
+\delta_{i\rightarrow j}=\sum_{C_{i}\setminus S_{i,j}}\psi_{i}\prod_{k\in Nb_{i}\setminus\{j\}}\delta_{k\rightarrow i}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Enumerate
+After the root has received all messages, calculate belief:
+\begin_inset Formula 
+\[
+\beta_{root}=\psi_{root}\prod_{k\in Nb_{root}}\delta_{k\rightarrow root}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The calculated belief represents, as we show below:
+\begin_inset Formula 
+\[
+\beta_{root}=\tilde{P}(Scope(C_{root}))=\sum_{\mathcal{X}\setminus Scope(C_{root})}\prod_{\phi}\phi
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Message passing in clique trees 
+\begin_inset Formula $\Rightarrow$
+\end_inset
+
+Variable-Elimination
+\end_layout
+
+\begin_layout Standard
+Our aim is to show the correctness of the algorithm, that MP over a clique
+ tree that statisfies FPP and RIP produces the same marginals as V-E as
+ it is schematized by the last equation.
+ We start with an auxilliary lemma.
+\end_layout
+
+\begin_layout Description
+Lemma 
+\begin_inset Formula $X$
+\end_inset
+
+ is eliminated when a message from 
+\begin_inset Formula $C_{i}$
+\end_inset
+
+ to 
+\begin_inset Formula $C_{j}$
+\end_inset
+
+ is sent.
+ Then 
+\begin_inset Formula $X$
+\end_inset
+
+ does not appear anywhere in the tree on the 
+\begin_inset Formula $C_{j}$
+\end_inset
+
+ side of the edge 
+\begin_inset Formula $(i\leftrightarrow j)$
+\end_inset
+
+.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+Proof A consequence of RIP.
+ Assume by contradicton there is a node 
+\begin_inset Formula $C_{k}$
+\end_inset
+
+ containing variable 
+\begin_inset Formula $X$
+\end_inset
+
+ on the 
+\begin_inset Formula $C_{j}$
+\end_inset
+
+ side of the edge 
+\begin_inset Formula $(i\leftrightarrow j)$
+\end_inset
+
+.
+ So 
+\begin_inset Formula $C_{j}$
+\end_inset
+
+ lies on the path from 
+\begin_inset Formula $C_{k}$
+\end_inset
+
+ (containing 
+\begin_inset Formula $X$
+\end_inset
+
+) to 
+\begin_inset Formula $C_{i}$
+\end_inset
+
+ (containing 
+\begin_inset Formula $X$
+\end_inset
+
+).
+ However, 
+\begin_inset Formula $C_{i}$
+\end_inset
+
+ does not contain 
+\begin_inset Formula $X$
+\end_inset
+
+, which violates RIP.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Let us introduce a notation used in the last proof.
+ 
+\begin_inset Formula $\mathcal{F}_{<(i\leftrightarrow j)}$
+\end_inset
+
+ is a set of all factors asociated with clusters on the 
+\begin_inset Formula $C_{i}$
+\end_inset
+
+ side of the edge.
+ 
+\begin_inset Formula $\mathcal{V}_{<(i\leftrightarrow j)}$
+\end_inset
+
+ is a set of variables that appear on the 
+\begin_inset Formula $C_{i}$
+\end_inset
+
+ side but not in the edge 
+\begin_inset Formula $(i\leftrightarrow j)$
+\end_inset
+
+ itself.
+\end_layout
+
+\begin_layout Description
+Theorem Let 
+\begin_inset Formula $\delta_{i\rightarrow j}$
+\end_inset
+
+ be a message from 
+\begin_inset Formula $C_{i}$
+\end_inset
+
+ to 
+\begin_inset Formula $C_{j}$
+\end_inset
+
+.
+ Then
+\begin_inset Formula 
+\[
+\delta_{i\rightarrow j}=\sum_{\mathcal{V}_{<(i\leftrightarrow j)}}\prod_{\phi\in\mathcal{F}_{<(i\leftrightarrow j)}}\phi
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+Proof By induction from leafs to the root.
+\begin_inset Newline newline
+\end_inset
+
+If 
+\begin_inset Formula $C_{i}$
+\end_inset
+
+ is a leaf, the equation follows from the definition of a message.
+\begin_inset Newline newline
+\end_inset
+
+If 
+\begin_inset Formula $C_{i}$
+\end_inset
+
+ is not a leaf and 
+\begin_inset Formula $C_{k},\: k\in\{i_{1},\ldots,i_{m}\}=Nb_{i}\setminus\{j\}$
+\end_inset
+
+ are the neighbours of 
+\begin_inset Formula $C_{i}$
+\end_inset
+
+ (excluding 
+\begin_inset Formula $C_{j}$
+\end_inset
+
+) then:
+\begin_inset Formula 
+\begin{eqnarray*}
+\mathcal{F}_{<(i\leftrightarrow j)} & = & \mathcal{F}_{<(i_{1}\leftrightarrow i)}\cup\ldots\cup\mathcal{F}_{<(i_{m}\leftrightarrow i)}\cup\mathcal{F}_{i};\;\mathcal{F}_{<(i_{1}\leftrightarrow i)}\cap\ldots\cap\mathcal{F}_{<(i_{m}\leftrightarrow i)}\cap\mathcal{F}_{i}=\textrm{Ø}\\
+\mathcal{V}_{<(i\leftrightarrow j)} & = & \mathcal{V}_{<(i_{1}\leftrightarrow i)}\cup\ldots\cup\mathcal{V}_{<(i_{m}\leftrightarrow i)}\cup Y_{i};\;\mathcal{V}_{<(i_{1}\leftrightarrow i)}\cap\ldots\cap\mathcal{V}_{<(i_{m}\leftrightarrow i)}\cap Y_{i}=\textrm{Ø}
+\end{eqnarray*}
+
+\end_inset
+
+
+\begin_inset Newline newline
+\end_inset
+
+where 
+\begin_inset Formula $Y_{i}$
+\end_inset
+
+ is a set of variables eliminated in 
+\begin_inset Formula $C_{i}$
+\end_inset
+
+ itself.
+ Due to this property we can partition sums and products in the equation
+ as follows:
+\begin_inset Formula 
+\[
+\sum_{\mathcal{V}_{<(i\leftrightarrow j)}}\prod_{\phi\in\mathcal{F}_{<(i\leftrightarrow j)}}\phi=\sum_{Y_{i}}(\sum_{\mathcal{V}_{<(i_{m}\leftrightarrow i)}}\ldots(\sum_{\mathcal{V}_{<(i_{1}\leftrightarrow i)}}\prod_{\phi\in\mathcal{F}_{<(i_{1}\leftrightarrow i)}}\phi)\ldots\prod_{\phi\in\mathcal{F}_{<(i_{m}\leftrightarrow i)}}\phi)\prod_{\phi\in\mathcal{F}_{i}}\phi=
+\]
+
+\end_inset
+
+
+\begin_inset Newline newline
+\end_inset
+
+After reordering the sums and products:
+\begin_inset Formula 
+\[
+=\sum_{Y_{i}}(\prod_{\phi\in\mathcal{F}_{i}}\phi)\sum_{\mathcal{V}_{<(i_{1}\leftrightarrow i)}}(\prod_{\phi\in\mathcal{F}_{<(i_{1}\leftrightarrow i)}}\phi)\ldots\sum_{\mathcal{V}_{<(i_{m}\leftrightarrow i)}}(\prod_{\phi\in\mathcal{F}_{<(i_{m}\leftrightarrow i)}}\phi)=
+\]
+
+\end_inset
+
+
+\begin_inset Newline newline
+\end_inset
+
+Using the induction step:
+\begin_inset Formula 
+\[
+=\sum_{Y_{i}}\psi_{i}\delta_{i_{1}\rightarrow i}\ldots\delta_{i_{m}\rightarrow i}=\delta_{i\rightarrow j}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\end_deeper
+\begin_layout Description
+Corollary 
+\begin_inset Formula $\beta_{i}=\tilde{P}(Scope(C_{i}))=\sum_{\mathcal{X}\setminus Scope(C_{i})}\prod_{\phi}\phi$
+\end_inset
+
+
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+Proof From the definition of belief:
+\begin_inset Formula 
+\[
+\beta_{i}=\psi_{i}\prod_{k\in Nb_{i}}\delta_{k\rightarrow i}=
+\]
+
+\end_inset
+
+
+\begin_inset Newline newline
+\end_inset
+
+Using the theorem above:
+\begin_inset Formula 
+\[
+=\psi_{i}\prod_{k\in Nb_{i}}\sum_{\mathcal{V}_{<(k\leftrightarrow i)}}\prod_{\phi\in\mathcal{F}_{<(k\leftrightarrow i)}}\phi=
+\]
+
+\end_inset
+
+
+\begin_inset Newline newline
+\end_inset
+
+
+\end_layout
+
+\end_deeper
+\end_body
+\end_document
