@@ -37,7 +37,7 @@ from scipy.stats import bernoulli, norm
 
 DEBUG = True
 # DEBUG = False
-INTERACTIVE = True
+INTERACTIVE = False
 if DEBUG:
     from alex.utils import pdbonerror
 if INTERACTIVE:
@@ -241,7 +241,10 @@ def main():
             inv_vx = 1. / v_x
             # Handle division by zero.
             if inv_vi == inv_vx:
-                cavity_vx = np.infty
+                # cavity_vx = np.infty
+                print "Skipping {n}".format(n=obs_idx)
+                idxs_skipped.append(obs_idx)
+                continue
             else:
                 cavity_vx = 1. / (inv_vx - inv_vi)
             # Minka:
@@ -263,11 +266,11 @@ def main():
             # José:
             # new_m_x = (cavity_mx +
             #            r * cavity_vx / (1. + cavity_vx) * (yi - m_0))
-            # ...this yields bad results.
+            # ...this leads to bad results.
             new_v_x = (cavity_vx - r * (cavity_vx ** 2) / (cavity_vx + 1.) +
                        r * (1 - r) * cavity_vx ** 2
                        * np.sum((yi - cavity_mx) ** 2)
-                       / (d * (cavity_vx + 1) ** 2))
+                       / (d * (cavity_vx + 1.) ** 2))
 
             # Update $\tilde{t}$.
             inv_cavity_vx = 1. / cavity_vx
@@ -300,8 +303,11 @@ def main():
                     inv_cavity_vx == 0 or any(m_x == cavity_mx)):
                 ms[obs_idx] = cavity_mx
             else:
-                ms[obs_idx] = cavity_mx + (vi + cavity_vx) * inv_cavity_vx * (
-                    m_x - cavity_mx)
+                # Minka: (?)
+                # ms[obs_idx] = cavity_mx + (vi + cavity_vx) * inv_cavity_vx * (
+                #     m_x - cavity_mx)
+                ms[obs_idx] = vi * (inv_new_vx * new_m_x
+                                    - inv_cavity_vx * cavity_mx)
             m_prob = psphere_norm(ms[obs_idx], cavity_mx,
                                   np.repeat(vi + cavity_vx, d))
             ss[obs_idx] = Zi / m_prob if m_prob > 0. else np.infty
@@ -324,11 +330,16 @@ def main():
 
     # Compute the normalising constant.
     # Ignore points (skipped in the last iteration) with ss = ∞.
-    valid_idxs = np.isfinite(ss)
+    # valid_idxs = np.isfinite(ss)
+    valid_idxs = (vs > 0) & np.isfinite(ss)
+    # valid_idxs = np.repeat(True, len(ss))
+    # valid_idxs[idxs_skipped] = False
+    # FIXME This should be computed on log-scale!
     B = m_x.dot(m_x) / v_x - sum(m.dot(m) / v for (m, v) in
                                  izip(ms[valid_idxs], vs[valid_idxs]))
     Z = ((2 * np.pi * v_x) ** (.5 * d) * np.exp(.5 * B)
-         * s_0 * np.prod(ss[valid_idxs]))
+         * s_0 * np.prod(ss[valid_idxs])
+               * np.prod((2 * np.pi * vs[valid_idxs]) ** (-.5 * d)))
 
     print "Results:"
     print "  vs = {vs}".format(vs=vs)

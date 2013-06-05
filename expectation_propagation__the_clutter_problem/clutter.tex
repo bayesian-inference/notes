@@ -209,7 +209,7 @@ approximate posterior $p(\vek{z}, \vek{e})$ can be computed as a product of
 the factors, according to the assumptions. If we are interested in 
 $p(\vek{e})$, the model evidence, it can be computed now as
 \begin{equation}
-	p(\vek{e}) = \int_{\vek{Z}} \prod_i\tilde{f}_i(\vek{z}) \byd\vek{z}.
+	p(\vek{e}) \approx \int_{\vek{Z}} \prod_i\tilde{f}_i(\vek{z}) \byd\vek{z}.
 	\label{eq:normaliser}
 \end{equation}
 
@@ -308,7 +308,7 @@ This factor is exact and need not be updated anymore.
 
 What remains is expressing the formulas (\ref{eq:cavity}), (\ref{eq:kl2}), 
 (\ref{eq:fupdate}) for a factor $\tilde{f}_i, i=1, \dots$, and 
-(\ref{eq:normaliser}).  The following paragraphs are devoted to this.
+(\ref{eq:normaliser}).  The following sections are concerned with this.
 
 % !?XXX Numbered subsection here caused a (probably) infinite loop in 
 % compilation.
@@ -708,7 +708,7 @@ the value $v^{\setminus i}\unity_d$):
 
 Substituting into Eqs.~\eqref{eq:minimiser_mean} and 
 \eqref{eq:minimiser_var}, we finally arrive at the new parameters of 
-$\mathcal{Q}$, $\vek{m_{\text{new}}}$ (mean) and 
+$\kve$, $\vek{m_{\text{new}}}$ (mean) and 
 $\vek{\Sigma_{\text{new}}}$ (variance):
 \begin{align}
 	 \vek{m_{\text{new}}} &= \vek{m^{\setminus i}} + \vek{\Sigma}
@@ -764,26 +764,26 @@ from a normal with the general covariance $\vek{\Sigma}$.%
 \footnote{This $\Sigma$ will be the $\vek{\Sigma_{\text{new}}}$ as given by 
 Eq.~\eqref{eq:sigma_new}.} %
 Let us solve this problem now, denoting the general multivariate normal 
-with $\mathcal{Q}$ and the spherical one with $\mathcal{S}$, and 
-assuming the mean $\vek{0}$ for both, WLOG:
+with $\kve$ and the spherical one with $\mathcal{S}$, and assuming the mean 
+$\vek{0}_d$ for both, WLOG:
 \begin{align}
-	\argmin_v \text{KL}(\mathcal{Q}\:||\:\mathcal{S}) &= %
+	\argmin_v \KL{\kve}{\mathcal{S}} &= %
 	\argmin_v \intrcc
-		\norm(\vek{x}; \vek{0}, \vek{\Sigma})
-		\log \frac{\norm(\vek{x}; \vek{0}, \vek{\Sigma})}
-							{\norm(\vek{x}; \vek{0}, v\unity_d)}  \byd \vek{x} \\
+		\norm(\vek{x}; \vek{0}_d, \vek{\Sigma})
+		\log \frac{\norm(\vek{x}; \vek{0}_d, \vek{\Sigma})}
+							{\norm(\vek{x}; \vek{0}_d, v\unity_d)}  \byd \vek{x} \\
 	&= \argmin_v \intrcc
-		\norm(\vek{x}; \vek{0}, \vek{\Sigma})
+		\norm(\vek{x}; \vek{0}_d, \vek{\Sigma})
 		\log\frac{\sqrt{|v\unity_d|}\exp\left\{-\frac{1}{2}\vek{x}^T\vek{\Sigma}^{-1}\vek{x}\right\}}
 		         {\sqrt{|\vek{\Sigma}|}\exp\left\{-\frac{1}{2}\vek{x}^T v^{-1}\unity_d \vek{x}\right\}}
 						 \byd \vek{x} \\
 	&= \argmin_v \intrcc
-		\norm(\vek{x}; \vek{0}, \vek{\Sigma})
+		\norm(\vek{x}; \vek{0}_d, \vek{\Sigma})
 	\left[\frac{d}{2}\log v - \frac{1}{2}\vek{x}^T\vek{\Sigma}^{-1}\vek{x}
 				- \frac{1}{2}\log|\vek{\Sigma}| + \frac{1}{2}\vek{x}^Tv^{-1}\unity_d \vek{x}
 	\right]\byd \vek{x} \\
 	&= \argmin_v \intrcc
-		\norm(\vek{x}; \vek{0}, \vek{\Sigma})
+		\norm(\vek{x}; \vek{0}_d, \vek{\Sigma})
 		\big(d\log v + \vek{x}^T\vek{x}/v\big)\byd \vek{x} \\
 	&\equalscolon \argmin_v G(v)
 \end{align}
@@ -793,15 +793,15 @@ find the minimum by setting the derivative equal to zero:
 \begin{align}
 	0 &= \frac{\byd G}{\byd v}(v^*) \\
 	&= \left(\frac{\byd}{\byd v}\intrcc
-		\norm(\vek{x}; \vek{0}, \vek{\Sigma})
+		\norm(\vek{x}; \vek{0}_d, \vek{\Sigma})
 		\big(d\log v + \vek{x}^T\vek{x}/v\big)\byd \vek{x}\right)(v^*) \\
 	&= \left(\intr
-		\frac{\byd}{\byd v}\norm(\vek{x}; \vek{0}, \vek{\Sigma})
+		\frac{\byd}{\byd v}\norm(\vek{x}; \vek{0}_d, \vek{\Sigma})
 		\big(d\log v + \vek{x}^T\vek{x}/v\big)\byd \vek{x}\right)(v^*) \\
 	&= \intrcc
-		\norm(\vek{x}; \vek{0}, \vek{\Sigma})
+		\norm(\vek{x}; \vek{0}_d, \vek{\Sigma})
 		\big(d/v - \vek{x}^T\vek{x}/v^2\big)\byd \vek{x}\bigg|_{v=v^*} \\
-	&= \frac{d}{v} - \frac{1}{v^2} \ee_{\mathcal{Q}}[\vek{x}^T\vek{x}] 
+	&= \frac{d}{v} - \frac{1}{v^2} \ee_{\kve}[\vek{x}^T\vek{x}] 
 \bigg|_{v=v^*}
 	\label{eq:vstar}
 \end{align}
@@ -846,12 +846,89 @@ updated variance of the spherical Gaussian posterior:
 \end{align}
 
 Eqs.~\eqref{eq:after_c}, \eqref{eq:mnew} and \eqref{eq:vnew} give us the 
-updated parameters for $\mathcal{Q}$, which was the objective of this 
+updated parameters for $\kve$, which was the objective of this 
 step.
 
 \subsection*{Update formula for $\tilde{f}_i$}
 
+The updated $\tilde{f}_i$ is now computed according to 
+Eq.~\eqref{eq:fupdate} using the formula for a ratio of Gaussians, 
+yielding:
+\begin{align}
+	\tilde{v}_i &= \left( (v_{\text{new}})^{-1} - (v^{\setminus 
+	i})^{-1}\right)^{-1} \\
+	\vek{\tilde{m}}_i &= \tilde{v}_i \left( (v_{\text{new}})^{-1}\vek{m_{\text{new}}}
+																			- (v^{\setminus i})^{-1}\vek{m^{\setminus i}}\right).
+\end{align}
+
+We could compute the normalisation constant $\tilde{s}_i$ using the 
+appropriate formula for a ratio of Gaussians, but we can get it in 
+a simpler way in terms of a convolution of Gaussians if we reorganise 
+Eq.~\eqref{eq:fupdate} slightly:
+\begin{align}
+	\tilde{f}_i &= Z_i\frac{\kve_{\text{new}}}{\kve^{\setminus i}}
+		\tag{\ref{eq:fupdate} -- repeated} \\
+	Z_i \kve_{\text{new}} &= \tilde{s}_i \norm(\vek{\tilde{m}_i}, \tilde{v}_i\unity_d)
+																		\cdot \kve^{\setminus i}
+	\label{eq:distro_eq} \\
+	Z_i = \intrc Z_i \norm(\vek{x}; \vek{m_{\text{new}}}, v_{\text{new}}\unity_d) \byd\vek{x}
+	   &= \intrc \tilde{s}_i \norm(\vek{x}; \vek{\tilde{m}_i}, \tilde{v}_i\unity_d)
+		 											\norm(\vek{x}; \vek{m^{\setminus i}}, v^{\setminus i}\unity_d)
+				\byd\vek{x}
+				\label{eq:int_eq} \\
+		 &= \tilde{s}_i \intrcc \norm(\vek{\tilde{m}_i} - \vek{x}; \vek{0}_d, 
+							\tilde{v}_i\unity_d)
+							\norm(\vek{x}; \vek{m^{\setminus i}}, v^{\setminus i}\unity_d)
+				\byd\vek{x} \\
+		 &= \tilde{s}_i \norm(\vek{\tilde{m}}_i;
+							\vek{m^{\setminus i}}, (\tilde{v}_i + v^{\setminus i})\unity_d)
+			\label{eq:si_rhs}
+\end{align}
+Note how we moved from Eq.~\eqref{eq:distro_eq} to \eqref{eq:int_eq} -- the 
+former asserts the equality of measures (unnormalised distributions), hence 
+their integral over the whole sample space must equal too, as asserted in 
+Eq.~\eqref{eq:int_eq}.
+
+From the equality of \eqref{eq:int_eq} and \eqref{eq:si_rhs}, we easily 
+obtain the value of $\tilde{s}_i$ as
+\begin{equation}
+	\tilde{s}_i = \frac{Z_i}{\norm(\vek{\tilde{m}}_i;
+							\vek{m^{\setminus i}}, (\tilde{v}_i + v^{\setminus 
+							i})\unity_d)}.
+\end{equation}
+
 \subsection*{Formula for the normalisation constant}
+
+According to Eq.~\eqref{eq:normaliser}, here we need to evaluate the 
+normalisation constant of a product of $(N + 1)$ (spherical) Gaussians 
+$\tilde{f}_i, i=0,\dots,N$. The general formulas for a product of a number 
+of Gaussians are the following:
+\begin{align}
+	\prod_{i=1}^{N} \norm(\boldsymbol{\mu}_i, \vek{\Sigma}_i)
+		&= \frac{1}{Z}\norm(\boldsymbol{\mu}, \vek{\Sigma}) \\
+\intertext{where}
+	\boldsymbol{\Sigma} &=
+		\left(\sum_{i=1}^{N}\vek{\Sigma}_i^{-1}\right)^{-1} \\
+	\boldsymbol{\mu} &= \vek{\Sigma}\left(
+		\sum_{i=1}^N\vek{\Sigma}_i^{-1}\boldsymbol{\mu}_i\right) \\
+	Z &= \frac{(2\pi)^{d/2}|\vek{\Sigma}|^{1/2}}
+						{\prod_{i=1}^N(2\pi)^{d/2}|\vek{\Sigma}_i|^{1/2}}
+			 \exp\left\{\frac{1}{2}\left(
+			 		\boldsymbol{\mu}^T\vek{\Sigma}^{-1}\boldsymbol{\mu}
+					- \sum_{i=1}^N\boldsymbol{\mu}_i^T
+												\vek{\Sigma}^{-1}\boldsymbol{\mu}
+						\right)\right\}.
+\end{align}
+
+In the case of spherical Gaussians, using the notation introduced for the 
+Clutter problem, the normalisation constant $Z$ is expressed as follows:
+\begin{align}
+	Z &= (2\pi v)^{d/2}\exp(B/2)\prod_{i=0}^N
+					\tilde{s}_i(2\pi\tilde{v}_i)^{-d/2} \\
+\intertext{where}
+	B &= \vek{m}^Tv^{-1}\vek{m}
+			 - \sum_{i=0}^N\vek{\tilde{m}}_i^T\tilde{v}_i^{-1}\vek{\tilde{m}}_i.
+\end{align}
 
 TODO: how the results are read off
 
