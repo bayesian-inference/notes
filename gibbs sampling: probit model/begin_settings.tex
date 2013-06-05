@@ -33,7 +33,7 @@
 %\usepackage[T1]{fontenc}
 
 %% Použité kódování znaků: obvykle latin2, cp1250 nebo utf8:
-\usepackage[utf8x]{inputenc}
+% \usepackage[utf8x]{inputenc}
 
 %% Ostatní balíčky
 \usepackage{draftwatermark} % really cool draftmark
@@ -48,7 +48,14 @@
 
 %% Packages needed for Latex-Draw 
 %% pretty cool drawing - latex-generating program
+%Check if we are compiling under pdflatex
+\ifx\pdftexversion\undefined
+% YOU SHOULD COMPILE WITH xelatex
+\usepackage[usenames,dvipsnames]{pstricks}
+\else
+% you are compiling with pdflatex
 \usepackage[usenames,dvipsnames,pdf]{pstricks}
+\fi
 \usepackage{epsfig}
 \usepackage{pst-grad} % For gradients
 \usepackage{pst-plot} % For axes
