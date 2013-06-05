@@ -22,6 +22,9 @@ I was compiling with with the default option pdflatex
 `pdfTeX 3.1415926-2.4-1.40.13 (TeX Live 2012/Debian)`
 and it was OK.
 
+Some of you may be missing the [algorithms package](http://www.ctan.org/pkg/algorithms)
+used in `\usepackage{algorithm}`, so install it from the CTAN website.
+
 TODO
 ----
 Any (constructive) feedback is welcomed. Thanks to Matej and Ondra for reporting the compilation bug.

@@ -4,8 +4,10 @@ NAME = main
 TEX_CALL = pdflatex -shell-escape
 # TEX_CALL = xelatex 
 
-# change all: bib to all: pdf if you want to use it regularly
-all: bib 
+# for fully functional pdf 
+# all: bib 
+# for regular compilation -> quicker
+all: pdf 
 
 pdf: ${NAME}.pdf
 	# okular --unique "${NAME}.pdf" >/dev/null 2>&1 &
