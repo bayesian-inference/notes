@@ -5,9 +5,9 @@ TEX_CALL = pdflatex -shell-escape
 # TEX_CALL = xelatex 
 
 # for fully functional pdf 
-# all: bib 
+all: bib 
 # for regular compilation -> quicker
-all: pdf 
+# all: pdf 
 
 pdf: ${NAME}.pdf
 	# okular --unique "${NAME}.pdf" >/dev/null 2>&1 &

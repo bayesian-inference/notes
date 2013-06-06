@@ -229,9 +229,9 @@ The middle term will disappear, because it is our deterministic way how to conve
 We can write down the prior on weights. The observations are $iid$ distributed, so we can use the product of their distributions. Further, we assume without loss of generality that \todo{  the latent model has variance 1 for each observation}.
 \begin{align}
     &= \norm(\mu_0, \Sigma_0) * \prod_{i=1}^N \norm(\yh \mid x_i' * w, 1) \\
-    &= \norm(\mu_0, \Sigma_0) * \norm(\Yh \mid X' * w, \unity_N) \label{eq:w_marg_vect}\\
-    &= \norm \left(w  \mid  (\Sigma_0^{-1} + X'X)^{-1}(\Sigma_0^{-1}\mu_0 + X'\Yh), (\Sigma_0^{-1} + X'X)^{-1}\right) \label{eq:w_marg_final} \\
-    &= \norm \left(w  \mid  \hat{\mu}, \hat{\Sigma}\right)  \text{ We denote the new mean $\hat{\mu}$ and the new covariance $\hat{\Sigma}$}
+    &\propto \norm(\mu_0, \Sigma_0) * \norm(\Yh \mid X' * w, \unity_N) \label{eq:w_marg_vect}\\
+    &= \norm \left(w  \mid  (\color{orange}\Sigma_0^{-1} + XX')^{-1}(\Sigma_0^{-1}\mu_0 + X\Yh\color{black}), (\Sigma_0^{-1} + XX')^{-1}\right) \label{eq:w_marg_final} \\
+    &= \norm \left(w  \mid  \color{orange}\hat{\mu}\color{black}, \hat{\Sigma}\right)  \text{ We denote the new mean and covariance $\hat{\mu}$ and $\hat{\Sigma}$}
 \end{align}
 
 Let us explain how we derive $\hat{\mu}$ and $\hat{\Sigma}$ from equation~\ref{eq:w_marg_vect}.
@@ -241,11 +241,16 @@ Let us explain how we derive $\hat{\mu}$ and $\hat{\Sigma}$ from equation~\ref{e
     \notag\\ &\mspace{50mu} 
     * \frac{1}{\sqrt{(2\pi)^N|\unity_N|}}\exp({-\frac{1}{2}(\Yh-X'w)'\unity_N^{-1}(\Yh-X'w)}) = \\
 &= \frac{1}{(2\pi)^N \sqrt{|\Sigma_0|}}\exp({-\frac{1}{2}[((w-\mu_0)'\Sigma_0^{-1}(w-\mu_0) +  (\Yh-X'w)'(\Yh-X'w)]}) \\
-&= C* \exp({-\frac{1}{2}[(w-\mu_0)'\Sigma_0^{-1}(w-\mu_0) +  (\Yh-X'w)'(\Yh-X'w)]}) \\
-&= C* \exp({-\frac{1}{2}[w'\Sigma_0^{-1} w - 2w'\Sigma_0^{-1}\mu_0 + \color{blue}\mu_0'\Sigma_0^{-1}\mu_0 + \Yh'\Yh \color{black}-2\Yh'X'w  + w'XX'w]}) \\
-&= C* \color{blue} C' \color{black} * \exp({-\frac{1}{2}[w'\Sigma_0^{-1} w - 2w'(\Sigma_0^{-1}\mu_0  + 'X\Yh)  + w'XX'w]}) \\
-&= C* \color{blue} C' \color{black} * \exp({-\frac{1}{2}[w'(\Sigma_0^{-1} + XX') w - 2w'(\Sigma_0^{-1}\mu_0  + X\Yh)]}) \\
-&= C* \color{blue} C' *\color{violet} C'' \color{black} * \exp({-\frac{1}{2}[w'(\Sigma_0^{-1} + XX') w - 2w'(\Sigma_0^{-1}\mu_0  + X\Yh)] + TODO_SQUARE })
+&= c* \exp({-\frac{1}{2}[(w-\mu_0)'\Sigma_0^{-1}(w-\mu_0) +  (\Yh-X'w)'(\Yh-X'w)]}) \\
+&= c* \exp({-\frac{1}{2}[w'\Sigma_0^{-1} w - 2w'\Sigma_0^{-1}\mu_0 + \color{blue}\mu_0'\Sigma_0^{-1}\mu_0 + \Yh'\Yh \color{black}-2\Yh'X'w  + w'XX'w]}) \\
+&= c* \color{blue} c' \color{black} * \exp({-\frac{1}{2}[w'\Sigma_0^{-1} w - 2w'(\Sigma_0^{-1}\mu_0  + 'X\Yh)  + w'XX'w]}) \\
+&= c* \color{blue} c' \color{black} * \exp({-\frac{1}{2}[w'(\Sigma_0^{-1} + XX') w - 2w'(\Sigma_0^{-1}\mu_0  + X\Yh)]}) \\
+&= c* \color{blue} c' *\color{violet} c'' \color{black} * \exp (-\frac{1}{2}[w'(\Sigma_0^{-1} + XX') w 
+    \notag\\ &\mspace{50mu} 
+    - 2w'(\color{orange}\Sigma_0^{-1}\mu_0  + X\Yh)(\Sigma_0^{-1} + XX')^{-1}\color{black} * (\Sigma_0^{-1} + XX')
+    \notag\\ &\mspace{50mu} 
+\color{violet}(\Sigma_0^{-1} + XX')^{-1}(\Sigma_0^{-1}\mu_0 + X\Yh)'(\Sigma_0^{-1} + XX')(\Sigma_0^{-1} + XX')^{-1}(\Sigma_0^{-1}\mu_0 + X\Yh)\color{black}  ]) \\
+&= c* \color{blue} c' *\color{violet} c'' \color{black} * \exp \left(-\frac{1}{2}(w - \color{orange}\hat{\mu}\color{black})' (\Sigma_0^{-1} + XX')(w - \color{orange}\hat{\mu}\color{black}) \right)
 \end{align}
 \end{proof}
 
