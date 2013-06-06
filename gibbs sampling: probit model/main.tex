@@ -8,7 +8,7 @@
 
 \section{Introduction} 
 \label{sec:introduction}
-In this short document we would like to introduce {\it Bayesian attitude} to {\it probit regression}. In {\it Bayesian theory} we are  trying to derive a distribution for an unknown random variable from already known random variables. 
+In this short document we would like to introduce {\it Bayesian approach} to {\it probit regression}. In {\it Bayesian theory} we are  trying to derive a distribution for an unknown random variable from already known random variables. 
 
 In our example we would like to know a posterior distribution for the labels $Y$ in the~probit regression model. We will derive the posterior distribution from the features $X$ and the prior on weights $w$. We will estimate the~posterior distribution from observations $\{1,\ldots,N\}$ where we saw label $y_i$ as well as features $x_i$ for each of observation $i$. We also suppose that each observation from $\{1,\ldots,N\} \cup \{new\}$ are $iid$. 
 
@@ -51,7 +51,7 @@ However, in Bayesian theory we put prior on $w$, which means that we consider ev
 \end{equation}
 In our case we suppose that $w$ is normally distributed.
 \begin{equation}\label{eq:prior_weights}
-w \sim N(\mu_0, \Sigma_0)
+w \sim \norm(\mu_0, \Sigma_0)
 \end{equation}
 
 Usually, the posterior probability~\ref{eq:posterior} is estimated from the likelihood as
@@ -83,7 +83,7 @@ The graphical model in the Figure~\ref{fig:probitGM} illustrates relationships a
 \label{fig:probitGM}
 \end{figure}
 
-\section{Introducing latent variable $\overset{\sim}{Y}$ }
+\section{Introducing latent variable $\Yh$ }
 \label{sec:introducing_latent_variale}
 In fact, the model with latent variable is just technical trick. Later, in section~\ref{sec:sampling_from_marginal_distribution_in_probit_example} we will find out that the Gibbs sampler needs to draw samples from marginal distributions for each variable of joint distribution we want to sample from. In the probit model we do not know how to compute the marginal distributions.
 
@@ -91,15 +91,15 @@ However we are able to draw samples from marginal distributions of the model wit
 
 Let us introduce the latent model and remind priors on distribution for the random variables.
 \begin{equation}\label{eq:lat}
-    \overset{\sim}{Y} = X' * w + \varepsilon, 
+    \Yh = X' * w + \varepsilon, 
 \end{equation}
 where we suppose that:
 \begin{itemize}
     \item weights $w$ are distributed according the~equation~\ref{eq:prior_weights} 
-    \item noisy labeling without loss of generality\footnote{Without loss of generality we can assume $N(0,1)$ instead of $\varepsilon \sim N(0, S)$. 
-        If we needed to estimate weights $w$ for $N(0, S)$ introduced in the~graphical model we will estimate weights $w^h$ for $N(0,1)$ and set $w = S*w^h$}
+    \item noisy labeling without loss of generality\footnote{Without loss of generality we can assume $\norm(0,1)$ instead of $\varepsilon \sim \norm(0, S)$. 
+        If we needed to estimate weights $w$ for $\norm(0, S)$ introduced in the~graphical model we will estimate weights $w^h$ for $\norm(0,1)$ and set $w = S*w^h$}
         \begin{equation}\label{eq:noise}
-        \varepsilon \sim N(0, 1).
+        \varepsilon \sim \norm(0, 1).
         \end{equation}
     \item $X$ is the matrix of features, \\
 \end{itemize}
@@ -108,19 +108,19 @@ Note that we can draw samples from the probit model if we can draw samples from 
 \begin{equation}\label{eq:model_equivalence}
     y_i = 
      \begin{cases} 
-         1 & \text{if }\overset{\sim}{y_i} > 0 \ \text{ i.e. } - \varepsilon < x_i' * w, \\
+         1 & \text{if }\yh > 0 \ \text{ i.e. } - \varepsilon < x_i' * w, \\
          0 &\text{otherwise.} 
      \end{cases}
 \end{equation}
 Let us prove that equation~\ref{eq:model_equivalence} determines the probit model.
-\begin{eqnarray}
-    P(y_i=1 \mid x_i)= P(\overset{\sim}{y_i} > 0 ) = P(x_i' * w + \varepsilon > 0) \\
-    = P(\varepsilon > - x_i' * w) \\
-    = P(\varepsilon > - x_i' * w) \\
+\begin{align}
+    P(y_i=1 \mid x_i) &= P(\yh > 0 ) = P(x_i' * w + \varepsilon > 0) \\
+                      &= P(\varepsilon > - x_i' * w) \\
+                      &= P(\varepsilon > - x_i' * w) \\
     \text{by symmetry of normal distribution} \\
-    = P(\varepsilon < x_i' * w) \\
-    = \Phi(x_i' * w)
-\end{eqnarray}
+                      &= P(\varepsilon < x_i' * w) \\
+                      &= \Phi(x_i' * w)
+\end{align}
 
 
 
@@ -168,31 +168,31 @@ Secondly, the stopping condition for Gibbs algorithm is much harder problem. The
 
 \subsection{Sampling from marginal distribution in Probit example} 
 \label{sec:sampling_from_marginal_distribution_in_probit_example}
-At the beginning we will give again short and dense overview of facts in few equations. Later we will compute marginals for joint probability $P(w, \overset{\sim}{Y} \mid X, Y)$. The marginals which we need to compute are 
+At the beginning we will give again short and dense overview of facts in few equations. Later we will compute marginals for joint probability $P(w, \Yh \mid X, Y)$. The marginals which we need to compute are 
 \begin{itemize}
-    \item $P(\overset{\sim}{Y} \mid w, X, Y)$.
-    \item $P(w \mid X, \overset{\sim}{Y}, Y)$.
+    \item $P(\Yh \mid w, X, Y)$.
+    \item $P(w \mid X, \Yh, Y)$.
 \end{itemize}
 
 We assume probit model for $Y$ binary random variable $ Y = \Phi(X' * w)$ where $w$ is distributed as described in equation~\ref{eq:prior_weights}.
 Further, without loss of generality we can assume that the latent model is normally distributed with covariance 1 as described below in equation~\ref{eq:cov1}.
 \footnote{We can compensate different variance from 1 by setting different variance in prior on weights~$w$ \todo{add equation}}
 \begin{equation}\label{eq:cov1}
-    \overset{\sim}{y_i} \mid x_i, w \overset{ind}{\sim} N(x_i' * w, 1)
+    \yh \mid x_i, w \overset{ind}{\sim} \norm(x_i' * w, 1)
 \end{equation}
 
-From transformation between labels $y_i$ and latent random variable $\overset{\sim}{y_i}$ in equation~\ref{eq:model_equivalence} we derive distribution described in terms of truncated normal.
+From transformation between labels $y_i$ and latent random variable $\yh$ in equation~\ref{eq:model_equivalence} we derive distribution described in terms of truncated normal.
 \footnote{More about truncated normal distribution on \href{http://en.wikipedia.org/wiki/Truncated_normal_distribution}{Wikipedia}}
 \begin{equation}
-    y_i \mid \overset{\sim}{y_i}, x_i, w \sim y_i \mid \overset{\sim}{y_i} \overset{ind}{\sim} 1(\overset{\sim}{y_i} \ge 0)
+    y_i \mid \yh, x_i, w \sim y_i \mid \yh \overset{ind}{\sim} 1(\yh \ge 0)
 \end{equation}
 
 \begin{thm}
-    All full marginal distributions with variables $w$, $\overset{\sim}{Y}$ for~joint probability $P(w, \overset{\sim}{Y} \mid X, Y)$ are distributed according
+    All full marginal distributions with variables $w$, $\Yh$ for~joint probability $P(w, \Yh \mid X, Y)$ are distributed according
 \begin{enumerate}
 \item
     \begin{equation}\label{eq:margin_w}
-    w \mid \overset{\sim}{Y}, X, Y \sim N(\hat{w},\hat{\Sigma})
+    w \mid \Yh, X, Y \sim \norm(\hat{w},\hat{\Sigma})
     \end{equation} 
     where 
     $ \hat{\Sigma} = {(\Sigma_0^{-1} + X' * X)}^{-1} $ 
@@ -201,8 +201,8 @@ From transformation between labels $y_i$ and latent random variable $\overset{\s
 
 \item 
     \begin{equation}\label{eq:margin_ytilda}
-        \overset{\sim}{Y} \mid w, X, Y \text{ has density } \\
-        \prod_{i=1}^{N} Z * N(x_i, 1) * {(1(\overset{\sim}{y_i} \ge 0))}^{y_i} * {(1(\overset{\sim}{y_i} < 0))}^{1-y_i}
+        \Yh \mid w, X, Y \text{ has density } \\
+        \prod_{i=1}^{N} Z * \norm(x_i, 1) * {(1(\yh \ge 0))}^{y_i} * {(1(\yh < 0))}^{1-y_i}
     \end{equation} 
     where $Z$ is normalizing constant.
 \end{enumerate}
@@ -212,54 +212,65 @@ From transformation between labels $y_i$ and latent random variable $\overset{\s
 Let us prove the marginal distribution from equation~\ref{eq:margin_w} 
 We start with
 \begin{equation}
-    P(w \mid \overset{\sim}{Y}, X, Y) 
+    P(w \mid \Yh, X, Y) 
 \end{equation}
 and by applying the Bayes rule and omitting the denominator we get
 \begin{equation}
-    \propto   P(\overset{\sim}{Y}, Y \mid X, w) * P(w).
+    \propto   P(\Yh, Y \mid X, w) * P(w).
 \end{equation}
 We further expand the first probability by chain rule
 \begin{equation}
-    \propto   P(\overset{\sim}{Y} \mid X, w) * P(Y \mid \overset{\sim}{Y},  X, w) * P(w).
+    \propto   P(\Yh \mid X, w) * P(Y \mid \Yh,  X, w) * P(w).
 \end{equation}
 The middle term will disappear, because it is our deterministic way how to convert hidden model to probit model.
 \begin{equation}
-    \propto   P(w) * P(\overset{\sim}{Y} \mid X, w)
+    \propto   P(w) * P(\Yh \mid X, w)
 \end{equation}
-We can write down the prior on weights. Because of $iid$ distributed observations we can write the product of their distributions at points $\overset{\sim}{y_i}$. Further, we can \todo{without loss of generality assume that the latent model has variance 1 for each observation}.
-\begin{equation}
-    = N(\mu_0, \Sigma_0) * \prod_{i=1}^N N(\overset{\sim}{y_i} \mid w' * x_i, 1)
-\end{equation}
-\begin{equation}
-    = N(w  \mid  \hat{w}, \hat{\Sigma})
-\end{equation}
-\todo{explain it}
-where $\hat{\Sigma} = (\Sigma_0^{-1} + X'X)^{-1}$ and $\hat{w} = \hat{\Sigma}(\Sigma_0^{-1}\mu_0 + X'y)$
+We can write down the prior on weights. The observations are $iid$ distributed, so we can use the product of their distributions. Further, we assume without loss of generality that \todo{  the latent model has variance 1 for each observation}.
+\begin{align}
+    &= \norm(\mu_0, \Sigma_0) * \prod_{i=1}^N \norm(\yh \mid x_i' * w, 1) \\
+    &= \norm(\mu_0, \Sigma_0) * \norm(\Yh \mid X' * w, \unity_N) \label{eq:w_marg_vect}\\
+    &= \norm \left(w  \mid  (\Sigma_0^{-1} + X'X)^{-1}(\Sigma_0^{-1}\mu_0 + X'\Yh), (\Sigma_0^{-1} + X'X)^{-1}\right) \label{eq:w_marg_final} \\
+    &= \norm \left(w  \mid  \hat{\mu}, \hat{\Sigma}\right)  \text{ We denote the new mean $\hat{\mu}$ and the new covariance $\hat{\Sigma}$}
+\end{align}
+
+Let us explain how we derive $\hat{\mu}$ and $\hat{\Sigma}$ from equation~\ref{eq:w_marg_vect}.
+\begin{align}
+& \norm(w \mid \mu_0, \Sigma_0) * \norm(\Yh \mid X'w, \unity_N) = \\
+&= \frac{1}{\sqrt{(2\pi)^N|\Sigma_0|}}\exp({-\frac{1}{2}(w-\mu_0)'\Sigma_0^{-1}(w-\mu_0)}) * 
+    \notag\\ &\mspace{50mu} 
+    * \frac{1}{\sqrt{(2\pi)^N|\unity_N|}}\exp({-\frac{1}{2}(\Yh-X'w)'\unity_N^{-1}(\Yh-X'w)}) = \\
+&= \frac{1}{(2\pi)^N \sqrt{|\Sigma_0|}}\exp({-\frac{1}{2}[((w-\mu_0)'\Sigma_0^{-1}(w-\mu_0) +  (\Yh-X'w)'(\Yh-X'w)]}) \\
+&= C* \exp({-\frac{1}{2}[(w-\mu_0)'\Sigma_0^{-1}(w-\mu_0) +  (\Yh-X'w)'(\Yh-X'w)]}) \\
+&= C* \exp({-\frac{1}{2}[w'\Sigma_0^{-1} w - 2w'\Sigma_0^{-1}\mu_0 + \color{blue}\mu_0'\Sigma_0^{-1}\mu_0 + \Yh'\Yh \color{black}-2\Yh'X'w  + w'XX'w]}) \\
+&= C* \color{blue} C' \color{black} * \exp({-\frac{1}{2}[w'\Sigma_0^{-1} w - 2w'(\Sigma_0^{-1}\mu_0  + 'X\Yh)  + w'XX'w]}) \\
+&= C* \color{blue} C' \color{black} * \exp({-\frac{1}{2}[w'(\Sigma_0^{-1} + XX') w - 2w'(\Sigma_0^{-1}\mu_0  + X\Yh)]}) \\
+&= C* \color{blue} C' *\color{violet} C'' \color{black} * \exp({-\frac{1}{2}[w'(\Sigma_0^{-1} + XX') w - 2w'(\Sigma_0^{-1}\mu_0  + X\Yh)] + TODO_SQUARE })
+\end{align}
 \end{proof}
 
 \begin{proof}
 Let us prove the second marginal distribution from equation~\ref{eq:margin_ytilda} 
 \begin{equation}
-P(\overset{\sim}{Y} \mid X, Y, w) \propto
+P(\Yh \mid X, Y, w) \propto
 \end{equation}
 We continue by using Bayes rule in form $ P(A \mid C, B) = \frac{P( B \mid A, C) * P(A|C)}{P(B)}$ 
 \begin{equation}
-    \propto P(\overset{\sim}{Y} \mid X, w) * P(Y \mid X,\overset{\sim}{Y}, w)
+    \propto P(\Yh \mid X, w) * P(Y \mid X,\Yh, w)
 \end{equation}
-Now we can substitute for the conditional probabilities with distributions
+Now we substitute the conditional probabilities by: 
 \begin{equation}\label{eq:exp_trick}
-    P(\overset{\sim}{Y} \mid X, w) = \prod_{i=1}^{N}N(\overset{\sim}{y_i} \mid w^T*x_i, 1) \text{ and } 
-    P(Y \mid X,\overset{\sim}{Y}, w) = \prod_{i=1}^{N}{(1_{(\overset{\sim}{y_i} \ge 0)})}^{y_i} * {(1_{(\overset{\sim}{y_i} < 0)})}^{1-y_i}.
+    P(\Yh \mid X, w) = \prod_{i=1}^{N}\norm(\yh \mid w^T*x_i, 1) \text{ and } 
+    P(Y \mid X,\Yh, w) = \prod_{i=1}^{N}{(1_{(\yh \ge 0)})}^{y_i} * {(1_{(\yh < 0)})}^{1-y_i}.
 \end{equation}
-Note the nice technical trick in equation~\ref{eq:exp_trick}. Instead of writing the {\it if statement} like in equation~\ref{eq:model_equivalence} we wrote ${(1_{(\overset{\sim}{y_i} \ge 0)})}^{y_i} * {(1_{(\overset{\sim}{y_i} < 0)})}^{1-y_i}$. It works, because if $y_i =0 $ the first multiplier is 1 and if $y_i=1$ the second multiplier is 1.
-Consequently, It leads us to equation for density function point $\overset{\sim}{Y'}$.
+Note the nice technical trick in equation~\ref{eq:exp_trick}. Instead of writing the {\it if statement} like in equation~\ref{eq:model_equivalence} we wrote ${(1_{(\yh \ge 0)})}^{y_i} * {(1_{(\yh < 0)})}^{1-y_i}$. The first multiplier is 1 if $y_i =0 $ and the second one is 1 if $y_i=1$. Consequently, It leads us to equation for density function point $\Yhs$.
 \begin{equation}
-P(\overset{\sim}{Y} = \overset{\sim}{Y'} \mid X, Y, w)
-    \propto \prod_{i=1}^{N}N(\overset{\sim}{y_i'} \mid w^T*x_i, 1) * 
-    \prod_{i=1}^{N}{(1_{(\overset{\sim}{y_i'} \ge 0)})}^{y_i} * {(1_{(\overset{\sim}{y_i'} < 0)})}^{1-y_i}
+P(\Yh = \Yhs \mid X, Y, w)
+    \propto \prod_{i=1}^{N}\norm(\yhs \mid w^T*x_i, 1) * 
+    \prod_{i=1}^{N}{(1_{(\yhs \ge 0)})}^{y_i} * {(1_{(\yhs < 0)})}^{1-y_i}
 \end{equation}
 
-It means that distributions $ P(\overset{\sim}{y_i} \mid  x_i, y_i, w) $ are conditionally independent with truncated normal distribution.
+It means that distributions $ P(\yh \mid  x_i, y_i, w) $ are conditionally independent with truncated normal distribution.
 \end{proof}
 
     % slide 6 NPFL108-slidesLexture6-7-SamplingMethods.pdf

@@ -13,7 +13,7 @@
 \setlength\headsep{0mm}
 \setlength\headheight{0mm}
 % \openright zařídí, aby následující text začínal na pravé straně knihy
-\let\openright=\clearpage
+% \let\openright=\clearpage
 
 %% Pokud tiskneme oboustranně:
 % \documentclass[12pt,a4paper,twoside,openright]{report}
@@ -36,9 +36,9 @@
 % \usepackage[utf8x]{inputenc}
 
 %% Ostatní balíčky
-\usepackage{draftwatermark} % really cool draftmark
-\SetWatermarkScale{4}
-\SetWatermarkLightness{0.7}
+% \usepackage{draftwatermark} % really cool draftmark
+% \SetWatermarkScale{4}
+% \SetWatermarkLightness{0.7}
 %\SetWatermarkText{Draft!}
 
 \usepackage{listings}
@@ -70,7 +70,7 @@
 
 \title{Probit regression with Gibbs sampling}
 \date{1.6.2013}
-\author{Ondřej Plátek}
+\author{Ondrej Platek}
 
 %%% Drobné úpravy stylu
 
@@ -116,6 +116,7 @@
     \footnotemark[\value{#1}]
 }
 \begin{document}
+\maketitle
 \pagestyle{plain}
 \setcounter{page}{1}
 %\tableofcontents %prida obsah
@@ -126,3 +127,10 @@
 \theoremstyle{definition}
 \newtheorem{defn}[thm]{Definition} % definition numbers are dependent on theorem numbers
 \newtheorem{exmp}[thm]{Example} % same for example numbers
+\newcommand{\norm}{\ensuremath{\:\mathcal{N}}}
+\newcommand{\unity}{\ensuremath{\mathbf{I}}}
+\newcommand{\Yh}{\ensuremath{\overset{\sim}{Y}}}
+\newcommand{\yh}{\ensuremath{\overset{\sim}{y_i}}}
+\newcommand{\yhs}{\ensuremath{\overset{\sim}{y_i^*}}}
+\newcommand{\Yhs}{\ensuremath{\overset{\sim}{Y^*}}}
+ 
