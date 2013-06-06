@@ -10,9 +10,9 @@
 \label{sec:introduction}
 In this short document we would like to introduce {\it Bayesian approach} to {\it probit regression}. In {\it Bayesian theory} we are  trying to derive a distribution for an unknown random variable from already known random variables. 
 
-In our example we would like to know a posterior distribution for the labels $Y$ in the~probit regression model. We will derive the posterior distribution from the features $X$ and the prior on weights $w$. We will estimate the~posterior distribution from observations $\{1,\ldots,N\}$ where we saw label $y_i$ as well as features $x_i$ for each of observation $i$. We also suppose that each observation from $\{1,\ldots,N\} \cup \{new\}$ are $iid$. 
+In our example we would like to know a posterior distribution for the weights $w$ in the~probit regression model. We will derive the posterior distribution from the seen features $x_i$, labels $y_i$ for observations $i\in\{1,\ldots,N\}$ and the prior on weights $w$. We also suppose that each observation from $\{1,\ldots,N\} \cup \{new\}$ are $iid$. 
 
-In fact, we are interested in predictive distribution for the label $y_{new}$ for the unseen features $x_{new}$ based on the knowledge of posterior distribution. Unfortunately, it is typical that the computation of the predictive as well as posterior distribution is intractable or even impossible. We will use {\it Gibbs sampling} as a approximation method of drawing samples from the posterior distribution. Obtaining samples from posterior distribution for $Y$ allows us to approximate posterior distribution and later compute predictive distribution for random variable $y_{new}$.
+In fact, we are interested in predictive distribution for the label $y_{new}$ for the unseen features $x_{new}$ based on the knowledge of posterior distribution for~weights. Unfortunately, it is typical that the computation of the posterior and consequently posterior distribution is intractable or even impossible. We will use {\it Gibbs sampling} as a approximation method of drawing samples from the posterior distribution. Obtaining samples from posterior distribution for $Y$ allows us to approximate posterior distribution and later compute predictive distribution for random variable $y_{new}$.
 
 
 % section introduction (end)
@@ -45,7 +45,7 @@ For given features $x_i$ we have the distribution $P(y_i=1 \mid x_i, w)$ which t
 
 Usually, the parameters $w$ are estimated by maximum likelihood. Denote them $w^*$. For new features $x_{new}$ we would give label $y_{new}$ according weights $w*$ and the features $x_{new}$. The problem is that we do not consider any other values for $w*$ even if they are just slightly less probably than $w*$. 
 
-However, in Bayesian theory we put prior on $w$, which means that we consider every possible value for weights $w$, because $w$ is a random variable. Instead of computing maximum likelihood from already seen data, we compute posterior distribution in equation~\ref{eq:posterior}.
+However, in Bayesian theory we put prior on $w$, which means that we consider every possible value for~weights $w$, because $w$ is a random variable. Instead of computing maximum likelihood from already seen data, we compute posterior distribution in equation~\ref{eq:posterior}.
 \begin{equation}\label{eq:posterior}
     P(w \mid X, Y) 
 \end{equation}
@@ -162,7 +162,7 @@ In following section we will focus on how to sample from the marginal distributi
 
 Firstly, initializing the values is not very problematic. Gibbs sampling is guaranteed to converge for any values. On the other hand, reasonable settings like mean or mode, if we know them,  gives faster convergence than outliers. \cite{gibbs_intro}
 
-Secondly, the stopping condition for Gibbs algorithm is much harder problem. There are several heuristics like autocorrelation metrics or measuring discrepancy between sampled and the desired distribution which are trying to detect whether the samples have converged to stable distribution. It can be shown that for Gibbs sampler the stable distribution is in fact the desired $P(Z)$ distribution. \cite{explaining_gibbs}
+Secondly, the stopping condition for Gibbs algorithm is much harder problem. There are several heuristics like autocorrelation metrics or measuring discrepancy between samples and the desired distribution which are trying to detect whether the samples have converged to stable distribution. It can be shown that for Gibbs sampler the stable distribution is in fact the desired $P(Z)$ distribution. \cite{explaining_gibbs}
 
 % subsection introducing_latent_variale (end)
 
