@@ -1,3 +1,4 @@
+% vim: set foldmethod=marker foldmarker=«,» :
 \documentclass[11pt]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[english]{babel}
@@ -23,26 +24,7 @@
 % \usepackage{tikz}
 % \usetikzlibrary{chains,patterns}
 
-\newcommand{\surf}[1]{\textit{#1}}
-\newcommand{\term}[1]{\textit{#1}}
-\newcommand{\vek}[1]{\ensuremath{\mathbf{#1}}}
-\newcommand{\kve}{\ensuremath{\mathcal{Q}}}
-\newcommand{\byd}{\ensuremath{\mathrm{d}}}
-\newcommand{\KL}[2]{\ensuremath{\text{KL}(#1\:||\:#2)}}
-\newcommand{\bern}{\ensuremath{\text{Bern}}}
-\newcommand{\norm}{\ensuremath{\:\mathcal{N}}}
-\newcommand{\unity}{\ensuremath{\mathbf{I}}}
-\newcommand{\ee}{\ensuremath{\mathbb{E}}}
-\newcommand{\real}{\ensuremath{\mathbb{R}}}
-\newcommand{\iid}{\ensuremath{\stackrel{\text{i.i.d.}}{\sim}}}
-\newcommand{\ind}{\ensuremath{\stackrel{\text{ind.}}{\sim}}}
-\DeclareMathOperator*{\argmin}{arg\,min}
-\newcommand{\intr}{\ensuremath{\int_{\real^d}}}
-\newcommand{\intrc}{\ensuremath{\int_{\rlap{\scriptsize$\real^d$}}\:}}
-\newcommand{\intrcc}{\ensuremath{\int_{\rlap{\scriptsize$\real^d$}}}}
-
-\newcommand{\oldss}{\thesubsection}
-\newcommand{\oldsss}{\thesubsubsection}
+\input{makra}
 
 \title{Expectation Propagation for the Clutter Problem -- Theory and 
 Implementation}
@@ -91,8 +73,8 @@ factorisation naturally emerges in experiments with i.i.d.\ observations
 where $f_0$ is the prior on $\vek{z}$ and $f_i$ the posterior for the 
 $i$-th observation for $i = 1, \dots$
 
-TODO: Draw a figure of a graphical model that is typically used for doing 
-EP.
+% TODO: Draw a figure of a graphical model that is typically used for doing 
+% EP.
 
 EP approximates the factors $f_i$ with factors $\tilde{f}_i$ that belong to 
 a convenient probability distribution family. The approximation aims to 
@@ -219,6 +201,9 @@ $p(\vek{e})$, the model evidence, it can be computed now as
 \section{The Clutter Problem}
 \label{sec:clutter}
 
+%«
+\subsection*{Specification of the Problem}
+%«
 In the Clutter problem, we assume a sequence of $d$-dimensional i.i.d.\ 
 observations being generated either from a normal distribution with an 
 unknown mean with some probability, or from the ``clutter'' 
@@ -245,7 +230,7 @@ Finally, we adopt a broad Gaussian prior on $\boldsymbol{\mu}$:
 	\boldsymbol{\mu} \sim \norm(\vek{0}_d, b\unity_{d}).
 \end{equation}
 
-TODO: draw the graphical model
+% TODO: draw the graphical model
 
 This problem fits nicely the assumptions for EP:
 \begin{enumerate}
@@ -309,11 +294,12 @@ This factor is exact and need not be updated anymore.
 What remains is expressing the formulas (\ref{eq:cavity}), (\ref{eq:kl2}), 
 (\ref{eq:fupdate}) for a factor $\tilde{f}_i, i=1, \dots$, and 
 (\ref{eq:normaliser}).  The following sections are concerned with this.
+%»
 
 % !?XXX Numbered subsection here caused a (probably) infinite loop in 
 % compilation.
 \subsection*{Update formula for the cavity distribution}
-
+%«
 The general formula is as follows:
 \begin{equation}
 	\kve^{\setminus i} \propto \kve / \tilde{f}_i.
@@ -354,9 +340,11 @@ parameters $\vek{m^{\setminus i}}$ (mean) and $v^{\setminus i}$
 	- \vek{\tilde{m}}_i\tilde{v}_i^{-1}) &%
 	 v^{\setminus i} &= \left(v^{-1} - \tilde{v}_i^{-1}\right)^{-1}.
 \end{align}
+%»
 
 \subsection*{Update formula for $\kve$}
-In computing $\kve_{\text{new}}$ according to Eq.~\eqref{eq:kl2}, we have 
+%«
+In computing $\kve_{\text{new}}$ according to Eq.~\eqref{eq:kl2}, we have
 to compute $\hat{p}$ and then its first and second moment in order to 
 arrive at the spherical normal distribution minimising the KL-divergence to 
 $\hat{p}$. In the definition of $\hat{p}$ in Eq.~\eqref{eq:phat}, the 
@@ -848,9 +836,10 @@ updated variance of the spherical Gaussian posterior:
 Eqs.~\eqref{eq:after_c}, \eqref{eq:mnew} and \eqref{eq:vnew} give us the 
 updated parameters for $\kve$, which was the objective of this 
 step.
+%»
 
 \subsection*{Update formula for $\tilde{f}_i$}
-
+%«
 The updated $\tilde{f}_i$ is now computed according to 
 Eq.~\eqref{eq:fupdate} using the formula for a ratio of Gaussians, 
 yielding:
@@ -896,9 +885,10 @@ obtain the value of $\tilde{s}_i$ as
 							\vek{m^{\setminus i}}, (\tilde{v}_i + v^{\setminus 
 							i})\unity_d)}.
 \end{equation}
+%»
 
 \subsection*{Formula for the normalisation constant}
-
+%«
 According to Eq.~\eqref{eq:normaliser}, here we need to evaluate the 
 normalisation constant of a product of $(N + 1)$ (spherical) Gaussians 
 $\tilde{f}_i, i=0,\dots,N$. The general formulas for a product of a number 
@@ -924,29 +914,220 @@ In the case of spherical Gaussians, using the notation introduced for the
 Clutter problem, the normalisation constant $Z$ is expressed as follows:
 \begin{align}
 	Z &= (2\pi v)^{d/2}\exp(B/2)\prod_{i=0}^N
-					\tilde{s}_i(2\pi\tilde{v}_i)^{-d/2} \\
+					\tilde{s}_i(2\pi\tilde{v}_i)^{-d/2}
+	\label{eq:z}
+					\\
 \intertext{where}
 	B &= \vek{m}^Tv^{-1}\vek{m}
 			 - \sum_{i=0}^N\vek{\tilde{m}}_i^T\tilde{v}_i^{-1}\vek{\tilde{m}}_i.
+	\label{eq:b}
 \end{align}
+%»%»
 
-TODO: how the results are read off
+\subsection*{Interpreting the results}
+%«
+Here we briefly summarise what is the actual result of running the 
+algorithm described up to here.  After the posterior parameters 
+$\vek{m}$ and $v$ stopped changing in the EP updates, and the 
+normalisation constant $Z$ has been evaluated according to 
+Eq.~\eqref{eq:z}, the approximated posterior for $\boldsymbol{\mu}$ is 
+given by
+\begin{equation}
+	p(\boldsymbol{\mu}) = \frac{1}{Z}\norm(\boldsymbol{\mu}; \vek{m}, 
+v\unity_d).
+\end{equation}
+%»
 
 \section{Implementation}
 \label{sec:impl}
 
-TODO: how some parameters were instantiated, how uniform factors were 
-expressed as Gaussians (infinite variance)
+I have written a Python script implementing EP for the clutter problem 
+that generates a random $\boldsymbol{\mu}$ and data from the implied 
+distribution, and then infers the posterior on $\boldsymbol{\mu}$ from 
+the cluttered observations. In the following two sections, I summarise the 
+script's features and point out some interesting aspects of the 
+implementation.
 
-TODO: general properties of the implementation: Python, uses numpy, can be 
-configured inside the source code, can be asked to draw plots interactively
+\subsection*{Script Features}
 
-TODO: example pictures from the algorithm
+\paragraph{Configuration.} The clutter problem has a number of parameters, 
+including:
+\begin{itemize}
+	\item number of observations $N$
+	\item proportion of clutter $w$
+	\item number of dimensions $d$
+	\item variance of the prior on $\boldsymbol{\mu}$, $b\unity_d$ ($b$ being 
+		the parameter)
+	\item parameters of the clutter:
+		$\vek{m}_c$ (the mean; fixed at $\vek{0}_d$ in the preceding text),
+		and $a$ ($a\unity_d$ being the variance).
+\end{itemize}
+Two other parameters are involved, related to the execution of the 
+algorithm:
+\begin{itemize}
+	\item maximum number of iterations
+	\item tolerance.
+\end{itemize}
 
-TODO: problems encountered (negative variance, infinities, unsensible 
-normalisation constants)\dots but the algorithm converges well. Include 
-some statistics of convergence properties (or, say, distance of the 
-estimated mean from the true one)
+All the parameters are set by overwriting their values near the beginning 
+of the script. The prior on $\boldsymbol{\mu}$ is treated as its true 
+distribution, meaning the value of $\boldsymbol{\mu}$ is sampled from the 
+prior in the first phase of computation.
+
+The script can be asked to run in a debugging mode or in an interactive 
+mode (any combination thereof). This is also set by modifying the script 
+(variables \code{DEBUG} and \code{INTERACTIVE}).
+
+\paragraph{Interactivity.} When asked to run in the interactive mode, the 
+script pauses after each iteration of the inner loop (iterating over 
+observed points) and brings up a window with a plot of the current 
+situation (see Fig.~\ref{fig:interactive_plot}), waiting for the user to 
+hit return until it continues. The plot shows the following items:
+\begin{itemize}
+	\item points that have been used to update the posterior estimate 
+		(``used points'')
+	\item the point used in the last inner loop iteration (``last 
+		point'')
+	\item points that were not used to update the posterior estimate due 
+		to the factor variance being negative (``skipped points''; cf.\ the 
+		next section for explanation)
+	\item the true mean (``true x'')
+	\item PDF of the distribution from which the samples were drawn 
+		(``original distribution'')
+	\item the cavity distribution PDF (``cavity'')
+	\item last point's posterior PDF or the last updated factor 
+		normalised to 1 (``last point's posterior'')
+	\item the estimated posterior PDF (``x posterior'')
+	\item PDF of the estimated posterior weighted with the clutter 
+		distribution (``cluttered x posterior'').
+\end{itemize}
+If $d > 1$ was set in the configuration, only the first dimension is shown 
+in this plot.
+
+\begin{figure}
+	\centering
+	\includegraphics{interactive_plot_50.png}
+	\caption{An example plot drawn in the interactive mode}
+	\label{fig:interactive_plot}
+\end{figure}
+
+After hitting return, next iterations of the inner loop are performed until 
+another valid point (having a valid variance for its factor) is 
+encountered. Then, the plot is updated. Subsequent iterations can be 
+skipped by pressing Ctrl-D (end of input) instead of return.
+
+When convergence is reached, a plot of all normalised factors is shown 
+until the user hits return once again. In the case of $d > 1$, only 
+projection to the first dimension is plotted. An example of this plot is 
+shown in Figure~\ref{fig:converged}.
+
+\begin{figure}
+	\centering
+	\includegraphics{posteriors_50.png}
+	\caption{Example plot of factors after convergence}
+	\label{fig:converged}
+\end{figure}
+
+\paragraph{Output.} The script dumps all variables' values that 
+capture the current state of the estimation, once at the beginning and 
+once at the end. The key for their names as shown on the output 
+follows:
+\begin{table}
+\begin{slovnik} \\
+	\toprule
+	\theader{script} && \theader{notes} & \theader{script} && \theader{notes} \\
+	\midrule
+	\code{x} &\dots& $\boldsymbol{\mu}$ &               	\code{mx} &\dots& $\tilde{\vek{m}}$ \\
+	\code{y} &\dots& $\vek{x}$ &                        	\code{vx} &\dots& $\tilde{v}$ \\
+	\code{vs} &\dots& $\tilde{v}_i,$ $i=1,\dots,N$ &      	\code{B} &\dots& $B$ (as used in Eq.~\eqref{eq:b}) \\
+	\code{ms} &\dots& $\tilde{\vek{m}}_i,$ $i=1,\dots,N$ &	\code{Z} &\dots& $Z$ (as used in Eq.~\eqref{eq:z}) \\
+	\code{ss} &\dots& $\tilde{s}_i,$ $i=1,\dots,N$ & && \\
+	\bottomrule
+\end{slovnik}
+	\caption{Key to variable names dumped by the script}
+	\label{tab:vars_key}
+\end{table}
+
+\subsection*{Interesting Points}
+
+This subsection points out some problems I encountered during writing the 
+script, most of which have been solved but some not yet. Some other aspects 
+of the implementation are also discussed here, which are not actually 
+problems.
+
+The first problem encountered is inherent to initialisation of the factors 
+that are supposed to not influence the initial estimate of the posterior.  
+For that reason, they are set to constant 1 over the whole space of 
+$\real^d$, while being assumed to be in the form
+\begin{equation}
+	\tilde{f}_i = \tilde{s}_i \norm(\tilde{\vek{m}}_i, \tilde{v}_i\unity_d).
+\end{equation}
+However it is mathematically unsustainable, these factors are typically 
+represented as having arbitrary $\vek{m}_i$, unit $\tilde{s}_i$ and 
+infinite $\tilde{v}_i$. That is also the way they have been implemented in 
+the script.
+
+Next, factors in the inner loop of EP can be iterated in an arbitrary 
+order. I have not done any randomisation to check this actually holds true, 
+and so the order of iterating the factors is fixed (they are iterated 
+sequentially from the first one to the last one).
+
+Several problems arose related to the actual computations. Some of them 
+come from different sources providing slightly different formulas. These 
+alternative versions of formulas are sometimes apparently equivalent (I was 
+not able to prove or disprove they are), and sometimes differ due to 
+a typo. They are always commented on in the code.
+
+More severe problems, though, are caused by some optimising factors not 
+actually being in the required form (of a spherical Gaussian) due to the 
+estimated negative variance. These are called \term{skipped points} (cf.\ 
+Fig.~\ref{fig:interactive_plot}) as the iteration where their likelihood 
+factor gets updated is skipped to keep all factors in the assumed form.  
+This way of dealing with negative variances was suggested at the lectures.
+
+\begin{figure}
+	\centering
+	\includegraphics{dividing_gaussians_w_same_var_50.png}
+	\caption{Dividing Gaussians with similar variance}
+	\label{fig:dividing_gaussians}
+\end{figure}
+
+The other extreme to a variance being negative is its being infinite, which 
+also happens in the computations. I have tried three alternative ways to 
+deal with infinite variances:
+\begin{enumerate}
+	\item Leave the variance infinite.
+	\item Set the variance to a very large number (e.g., $2^{512}$).
+	\item Skip the point with an infinite variance.
+\end{enumerate}
+Of these three strategies, the first one seemed to work best. All of them 
+are left in the code commented out. Infinite variances arise from dividing 
+two Gaussians with the same variance, where the resulting variance should 
+be computed as $1/0$. As the variances of the two Gaussians go 
+closer, variance of the resulting Gaussian goes to infinity.  This is 
+illustrated in Fig.~\ref{fig:dividing_gaussians}, which shows 
+a sequence of functions obtained as
+\begin{equation}
+	f(x) = \norm(x; \mu_1, \sigma^2) / \norm(x; \mu_2, k \cdot \sigma^2)
+\end{equation}
+with $k$ going to $1$ from above. The smaller $k$ (subject to $k > 1$), the 
+larger curve we see in Fig.~\ref{fig:dividing_gaussians}.
+
+Related to the two extreme values obtained for variance estimates are the 
+estimates of the scale coefficients $\tilde{s}_i$ which often acquire the 
+value of infinity. However, they are only used in the end to evaluate the 
+normalisation constant. The only problem is that infinite scale 
+coefficients would lead to an infinite normalisation coefficient, therefore 
+$Z$ is computed only from factors having their scale coefficient finite.
+
+Last problem to be discussed is the normalisation coefficient. It is often 
+very small, and sometimes even evaluated as zero due to rounding error.  
+Precision of this value would be enhanced if it was computed in log-scale.  
+However, this is one of many enhancements that are not implemented in the 
+script.
+
+% TODO: the algorithm converges well. Include some statistics of convergence 
+% properties (or, say, distance of the estimated mean from the true one)
 
 \bibliographystyle{acm}
 \bibliography{clutter}

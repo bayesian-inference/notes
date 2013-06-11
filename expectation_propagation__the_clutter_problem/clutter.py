@@ -32,12 +32,14 @@ import copy
 from itertools import izip
 from math import sqrt
 import numpy as np
+from operator import mul
 from scipy.stats import bernoulli, norm
 
 
 DEBUG = True
 # DEBUG = False
-INTERACTIVE = False
+INTERACTIVE = True
+# INTERACTIVE = False
 if DEBUG:
     from alex.utils import pdbonerror
 if INTERACTIVE:
@@ -65,15 +67,28 @@ config = DEFAULT_CFG  # To be overwritten.
 
 
 def psphere_norm(point, mu, variances):
-    """Computes the multivariate normal PDF.  Multiplication could cause
-    underflow, so using log-scale might be needed."""
-    return np.prod(map(lambda pt_uni, mu_uni, sd: norm.pdf(pt_uni, mu_uni, sd),
-                       point, mu, np.sqrt(variances)))
+    """\
+    Computes the multivariate normal PDF.
+    Deals with differing dimensionalities by considering only the minimum
+    dimensionality over the arguments.
+
+    Since multiplication could cause underflow, using log-scale might be
+    needed.
+
+    """
+    # return np.prod(map(lambda pt_uni, mu_uni, sd: norm.pdf(pt_uni, mu_uni, sd),
+    #                    point, mu, np.sqrt(variances)))
+    return reduce(mul, ((norm.pdf(pt_uni, mu_uni, sd)
+                        for (pt_uni, mu_uni, sd)
+                        in izip(point, mu, np.sqrt(variances)))))
 
 
 def gen_data():
-    """Generates a sample of data conformant to options specified in the
-    config."""
+    """\
+    Generates a sample of data conformant to options specified in the
+    config.
+
+    """
     # Introduce short variable names.
     N = config['n_observations']
     d = config['n_dimensions']
@@ -107,7 +122,7 @@ def param_dist(new, old):
     new_clipped = np.clip(new, new_finfo.min, new_finfo.max)
     old_finfo = np.finfo(old.dtype)
     old_clipped = np.clip(old, old_finfo.min, old_finfo.max)
-    return max(np.abs(new_clipped - old_clipped))
+    return max(np.sum(np.atleast_2d((new_clipped - old_clipped) ** 2), axis=1))
 
 
 def true_distro(true_x):
@@ -134,7 +149,7 @@ def update_plot(Y, m_x, v_x, cavity_mx, cavity_vx, ms, vs, idxs_used,
 
     plt.cla()
     # Draw the posterior.
-    post_pdf = norm(m_x, sqrt(v_x)).pdf
+    post_pdf = norm(m_x[0], sqrt(v_x)).pdf
     plt.plot(plt_ys, map(post_pdf, plt_ys), label="x posterior")
     cluttered_x_post = [(1 - w) * post_pdf(y) + w * pclutter([y])
                         for y in plt_ys]  # sorry for confusing
@@ -144,18 +159,18 @@ def update_plot(Y, m_x, v_x, cavity_mx, cavity_vx, ms, vs, idxs_used,
     plt.plot(plt_ys, map(true_distro(x_true), plt_ys),
                 label="original distribution")
     # Draw the points used.
-    plt.plot((x_true, x_true), (0, 0.5), label="true x")
-    plt.scatter(Y[idxs_used], np.zeros(len(idxs_used)), color='b',
+    plt.plot((x_true[0], x_true[0]), (0, 0.5), label="true x")
+    plt.scatter(Y[idxs_used, 0], np.zeros(len(idxs_used)), color='b',
                 label="used points")
-    plt.scatter(Y[idxs_skipped], np.zeros(len(idxs_skipped)), color='r',
+    plt.scatter(Y[idxs_skipped, 0], np.zeros(len(idxs_skipped)), color='r',
                 label="skipped points")
     # Draw the cavity distribution.
-    plt.plot(plt_ys, map(norm(cavity_mx, sqrt(cavity_vx)).pdf, plt_ys),
+    plt.plot(plt_ys, map(norm(cavity_mx[0], sqrt(cavity_vx)).pdf, plt_ys),
              label="cavity")
     # Draw the last point's distribution.
     last_y = Y[idxs_used[-1]][0]
     plt.scatter([last_y], [0.], color='g', label="last point")
-    last_post_pdf = norm(ms[idxs_used[-1]], sqrt(vs[idxs_used[-1]])).pdf
+    last_post_pdf = norm(ms[idxs_used[-1], 0], sqrt(vs[idxs_used[-1]])).pdf
     plt.plot(plt_ys, map(last_post_pdf, plt_ys),
              label="last point's posterior")
     plt.legend()
@@ -167,19 +182,20 @@ def update_plot(Y, m_x, v_x, cavity_mx, cavity_vx, ms, vs, idxs_used,
 
 
 def plot_factors(Y, x_true, m_0, v_0, ms, vs):
-    min_y = np.min(Y, axis=0)[0]
-    max_y = np.max(Y, axis=0)[0]
+    y_1d = np.atleast_2d(Y)[...,0]
+    min_y = min(y_1d)
+    max_y = max(y_1d)
     plt_ys = np.linspace(max_y + 1.1 * (min_y - max_y),
                          min_y + 1.5 * (max_y - min_y), 201)
 
     plt.cla()
-    plt.plot((x_true, x_true), (0, 0.5), label="true x")
-    plt.scatter(Y, np.zeros(Y.shape[0]))
-    prior = norm(m_0, sqrt(v_0)).pdf
+    plt.plot((x_true[0], x_true[0]), (0, 0.5), label="true x")
+    plt.scatter(y_1d, np.zeros(Y.shape[0]))
+    prior = norm(m_0[0], sqrt(v_0)).pdf
     plt.plot(plt_ys, map(prior, plt_ys), label="prior")
     # import ipdb; ipdb.set_trace()
     for obs_idx, (mi, vi) in enumerate(izip(ms, vs)):
-        y_post = norm(mi, sqrt(vi)).pdf
+        y_post = norm(mi[0], sqrt(vi)).pdf
         plt.plot(plt_ys, map(y_post, plt_ys))
     plt.legend()
     plt.show()
@@ -347,8 +363,8 @@ def main():
     print "  ss = {ss}".format(ss=ss)
     print " m_x = {mx}".format(mx=m_x)
     print " v_x = {vx}".format(vx=v_x)
-    print "  B  = {B}".format(B=B)
-    print "  Z  = {Z}".format(Z=Z)
+    print "   B = {B}".format(B=B)
+    print "   Z = {Z}".format(Z=Z)
 
     if was_interactive:
         update_plot(Y, m_x, v_x, cavity_mx, cavity_vx, ms, vs,

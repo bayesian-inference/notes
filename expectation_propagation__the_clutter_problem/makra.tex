@@ -1,0 +1,37 @@
+\usepackage{longtable}
+\usepackage{booktabs}
+
+\newenvironment{slovnik}
+{
+	\begin{center}
+	\vspace{-\abovedisplayskip}
+	\begin{longtable}{r@{\hspace{.6em}}c@{\hspace{.6em}}l@{\hspace{3em}}r@{\hspace{.6em}}c@{\hspace{.6em}}l}
+}{
+	\end{longtable}
+	\vspace{-\belowdisplayskip}
+	\end{center}
+	% \vspace{-\belowdisplayskip}
+}
+
+\newcommand{\surf}[1]{\textit{#1}}
+\newcommand{\term}[1]{\textit{#1}}
+\newcommand{\vek}[1]{\ensuremath{\mathbf{#1}}}
+\newcommand{\kve}{\ensuremath{\mathcal{Q}}}
+\newcommand{\byd}{\ensuremath{\mathrm{d}}}
+\newcommand{\KL}[2]{\ensuremath{\text{KL}(#1\:||\:#2)}}
+\newcommand{\bern}{\ensuremath{\text{Bern}}}
+\newcommand{\norm}{\ensuremath{\:\mathcal{N}}}
+\newcommand{\unity}{\ensuremath{\mathbf{I}}}
+\newcommand{\ee}{\ensuremath{\mathbb{E}}}
+\newcommand{\real}{\ensuremath{\mathbb{R}}}
+\newcommand{\iid}{\ensuremath{\stackrel{\text{i.i.d.}}{\sim}}}
+\newcommand{\ind}{\ensuremath{\stackrel{\text{ind.}}{\sim}}}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\newcommand{\intr}{\ensuremath{\int_{\real^d}}}
+\newcommand{\intrc}{\ensuremath{\int_{\rlap{\scriptsize$\real^d$}}\:}}
+\newcommand{\intrcc}{\ensuremath{\int_{\rlap{\scriptsize$\real^d$}}}}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\theader}[1]{\textbf{#1}}
+
+\newcommand{\oldss}{\thesubsection}
+\newcommand{\oldsss}{\thesubsubsection}
