@@ -1,0 +1,1250 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\usepackage{amsfonts}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{a4wide}
+\usepackage{comment}
+\usepackage{hyperref}
+\usepackage{verbatim}
+\usepackage{ae}
+\newcommand{\uv}[1]{\quotedblbase #1\textquotedblleft}
+
+\newenvironment{pitemize}{
+\begin{itemize}
+  \setlength{\itemsep}{5pt}
+  \setlength{\parskip}{0pt}
+  \setlength{\parsep}{0pt}
+}{\end{itemize}}
+
+\newenvironment{pproof}{
+\noindent\emph{Důkaz.}
+\begin{pitemize}
+}{\hfill$\square$\end{pitemize}}
+
+\newcommand{\NN}{\mathcal{N}}
+\newcommand{\NoG}{\mathcal{NG}}
+\newcommand{\St}{\mathrm{St}}
+\newcommand{\Gam}{\mathrm{Gam}}
+
+
+\renewcommand{\labelitemi}{\textbf{--}}
+
+\renewcommand{\labelitemii}{$\bullet$}
+\title{Bayesovská regrese}
+\author{Karel Bílek}
+\date{2013}
+
+\newtheorem{lemma}{Lemma}
+\newtheorem{veta}{Věta}
+
+
+\theoremstyle{definition}
+\newtheorem{definice}{Definice}
+
+
+
+\begin{document}
+\maketitle
+
+\section{Regrese se známou $\sigma^2$}
+\subsection{Definice problému}
+\begin{definice}[Model regrese se známou $\sigma^2$]
+\label{defmodel}
+\end {definice}
+\begin{pitemize}
+\item Trénovací data jsou vstupy $x_{old}=(x_1,x_2...x_n)^T$, výstupy $y_{old}=(y_1,y_2...y_n)^T$, můžou být diskrétní i spojité.
+
+\item Teď chci novému vstupu $x_{new}$ chci přiřadit výstup $y_{new}$. Předpokládám model dat $R$, popsaný níže.
+
+\item Model dat $R$ vypadá následovně:
+\begin{pitemize}
+
+\item známe $\sigma^2$
+\item známe nějakou konečnou množinu bázových funkcí $\phi_i(x)$, $i=1...M$.
+
+\item $y_i=f(x_i)+\varepsilon_i,$ kde 
+\item $\varepsilon_i \sim ^ {iid} \NN\left(0,\sigma^2\right)$ a 
+\item $f(x)= \sum_{m=1}^Mw_m\phi_m(x).$
+\end{pitemize}
+\item  Tj. model je lineární kombinace funkcí, zašuměná o nějaké $\varepsilon$.
+\item Parametry modelu jsou tedy váhy $w=(w_1,w_2...w_M)^T$, struktura modelu je definována mno\-ži\-nou funkcí.
+
+\item Dále si v rámci modelu zadefinujeme priorní pravděpodobnost $w\sim \NN(\mu_0,\Sigma_0)$
+\begin{itemize}
+\item Tj. konstanty jsou $\mu_0, \Sigma_0, \sigma^2,\{\phi_i\},$ chápu to vše jako součást modelu $R$.
+\end{itemize}
+\end{pitemize}
+
+\subsection{Pomocná lemmata}
+
+Zde si postupně napíšu a dokážu lemmata, co potom využiji ve výpočtech prediktivních funkcí dál.
+
+Pozn. k notaci: Konstantu u výpočtu logaritmu si často budu značit $c$. Pokud někde napíšu $f(x)=a(x)+c=b(x)+c$, nemusí jít o stejnou konstantu, je tím prostě myšleno \uv{něco, co nezávisí na $x$}.
+
+\begin{lemma}
+\label{prehozy}
+$M$ je symetrická matice, $a^T\,M\,b$ je skalár, potom  $a^T\,M\,b= b^T\,M\,a$
+\end{lemma}
+\begin{pproof}
+\item $a^TMb=\left(a^TMb\right)^T$, protože jde o skalár
+\item $\left(\left(a^TM\right)b\right)^T=b^T\left(a^TM\right)^T$, protože $(ab)^T=b^Ta^T$
+\item $b^T\left(a^TM\right)^T=b^TM^T{a^T}^T$
+\item $b^TM^T{a^T}^T=b^TMa$, protože $M$ je symetrická a ${a^T}^T=a$
+\end{pproof}
+
+\begin{lemma}
+\label{obecny_ctverec}
+$M$ je symetrická matice. Potom $$(a-b)^TM(a-b)=a^TMa-2a^TMb+b^TMb=a^TMa-2b^TMa+b^TMb$$
+\end{lemma}
+\begin{pproof}
+\item $\left(\left(a-b\right)^TM\right)(a-b)=\left(a^TM-b^TM\right)(a-b)=a^TMa-a^TMb-b^TMa+b^TMb$ - \uv{hloupé} rozepsání
+\item $a^TMa-a^TMb-b^TMa+b^TMb=a^TMa-2a^TMb+b^TMb,$ protože $M$ je symetrická a Lemma~\ref{prehozy}.
+\end{pproof}
+
+\begin{lemma}[Převod na čtverec]
+\label{ctverec}
+$\Lambda$ je pozitivně definitní matice. Potom $$-\frac{1}{2}x^T\Lambda x+x^Tm=-\frac{1}{2}(x-\Lambda^{-1} m)^T\Lambda(x-\Lambda^{-1} m)+\frac{1}{2}m^T\Lambda^{-1} m$$
+
+Pozn.: tuto \uv{zvláštní} formu používám proto, že takto se vyskytuje v~exponentu $\NN$.
+\end{lemma}
+
+Pozn. 2: Správně bych při použití tohoto lemmatu měl vždy kontrolovat, jestli jde o pozitivně definitní matici. Jelikož tohle já ale neumím, tak to dělat nebudu.
+
+\begin{pproof}
+\item Podle Lemma~\ref{obecny_ctverec} $(x-\Lambda^{-1} m)^T\Lambda(x-\Lambda^{-1} m)=x^T\Lambda x-2x^T\Lambda (\Lambda^{-1} m)+(\Lambda^{-1} m)^T\Lambda (\Lambda^{-1} m)$
+\item protože $\Lambda \Lambda^{-1}=1$, tak $(x-\Lambda^{-1} m)^T\Lambda(x-\Lambda^{-1} m)=x^T\Lambda x-2x^T m+(\Lambda^{-1} m)^T m$
+\item Poslední člen lze přepsat jako $m^T\Lambda^{-1}m$, protože $\Lambda^{-1}$ je symetrická.
+\item převod doleva: $(x-\Lambda^{-1} m)^T\Lambda(x-\Lambda^{-1} m)-m^T\Lambda^{-1} m=x^T\Lambda x-2x^T m$
+\item Vynásobíme $-\frac{1}{2}$: $-\frac{1}{2}(x-\Lambda^{-1} m)^T\Lambda(x-\Lambda^{-1} m)+\frac{1}{2}m^T\Lambda^{-1} m=-\frac{1}{2}x^T\Lambda x+x^T m$
+\end{pproof}
+
+\begin{comment}
+\begin{lemma}[Převod na čtverec]
+\label{ctverec}
+Ukážu-li u pravděpodobnostního rozdělení $p(x)$, že $$\ln(p(x))=-\frac{1}{2}x^T\Sigma^{-1}x+x^TB+c,$$ kde konstanta $c$ nezávisí na $x$ a $\Sigma^{-1}$ je pozitivně definitní, potom je $p(x)$ hustota pravděpodobnosti\footnote{dále jen pdf} multivariate gausiánu s kovarianční maticí $\Sigma={\Sigma^{-1}}^{-1}$ a očekávanou hodnotou $\Sigma B$
+\end{lemma}
+
+\begin{pproof}
+
+\item rozdělení je pdf mult. gaus. právě tehdy, když $p(x)=(2\pi)^{-\frac{k}{2}}|\Sigma|^{-\frac{1}{2}}\, e^{ -\frac{1}{2}(\mathbf{x}-\mu)^T\Sigma^{-1}(\mathbf{x}-\mu) }$
+
+\item protože se jedná o rozdělení (a tedy už víme, že je normalizované), tak stačí místo rovnítka pouze $\propto$ 
+
+\item tj. stačí, že $p(x) \propto e^{ -\frac{1}{2}(\mathbf{x}-\mu)^T\Sigma^{-1}(\mathbf{x}-\mu) }$
+
+\item to je právě tehdy, když $\ln(p(x))=-\frac{1}{2}(x-\mu)^T\Sigma^{-1}(x-\mu)+c$, kde $c$ je libovolná konstanta (z násobku se stal sčítanec vpravo)
+\item Podle Lemmatu \ref{obecny_ctverec} (a protože inverze pozitivně definitní matice je taky pozitivně definitní\footnote{\url{http://math.stackexchange.com/questions/211453/inverse-of-a-positive-definite}} a pozitivně definitní matice je symetrická) je to tehdy, když $\ln(p(x))=-\frac{1}{2}x^T\Sigma^{-1}x+x^T\Sigma^{-1}\mu-\frac{1}{2}\mu^T\Sigma^{-1}\mu+c$, přičemž $\frac{1}{2}\mu^T\Sigma^{-1}\mu$ nezávisí na $x$ a tedy lze ho zahrnout do konstanty, tj. stačí $\ln(x)=-\frac{1}{2}x^T\Sigma^{-1}x+x^T\Sigma^{-1}\mu+c$
+\item Mám-li teď tedy pravděpodobnostní rozdělení z definice, označím si $\mu=\Sigma B$, potom \linebreak
+$\ln(p(x))=-\frac{1}{2}x^T\Sigma^{-1}x+x^T\Sigma^{-1}\Sigma B=-\frac{1}{2}x^T\Sigma^{-1}x+x^T\Sigma^{-1}\mu,$ tedy splnili jsme podmínky a jde o mult. gausián
+\end{pproof}
+\end{comment}
+
+\begin{lemma}[Násobení matice ze stran]
+\label{nasobmatic}
+$\left(\begin{matrix}x\\y \end{matrix}\right)^T\left(\begin{matrix}A&B\\C&D \end{matrix}\right)\left(\begin{matrix}u\\ v \end{matrix}\right) = x^TAu+y^TDv+x^TBv+y^TCu$
+\end{lemma}
+
+%\begin{lemma}[integrál pravděpodobnostní funkce]
+%$\int p(x) dx$ je 1, pokud $p$ je pravděpodobnostní funkce. 
+%\end{lemma}
+
+\begin{lemma}%[integrál pravděpodobnostní funkce]
+\label{polomarginal}
+Mějme $$f(y)=\int g(y) p(x,y) dx,$$ kde $g(y)$ je nějaká funkce nezávislá na $x,$ a $p(x,y)\propto\bar{p}(x|y)$, 
+
+$$\bar{p}(x|y)\sim\NN.$$
+
+Pak $f(y) \propto g(y).$
+
+(Pozn.: $p(x,y)\propto\bar{p}(x|y)$ znamená, že konstanta $c$, přes kterou jsou proporcionální, nesmí záviset ani na $x$ ani na $y$.)
+
+\end{lemma}
+\begin{pproof}
+\item $f(y)=\int g(y) p(x,y) dx=g(y) \int  p(x,y) dx$ - v rámci integrálu je $g(y)$ konstanta, tak jí můžu vytknout 
+\item $\int \bar{p}(x|y) dx=1$ 
+\item $\int p(x,y) dx=\int c \,\bar{p}(x|y) dx=c\int \bar{p}(x|y) dx$ protože $c$ nezávisí na $x$
+\item $c\int \bar{p}(x|y) dx=c$
+
+%\item $\int  p(x) dx$ je konstanta - ve smyslu funkce $g(y)$; pořád je stejná bez závislosti na $g(y)$
+\item $g(y) \int  p(x,y) dx=g(y)\,c\propto g(y)$ protože $c$ nezávisí na $y$
+\end{pproof}
+
+\begin{definice}
+Nechť $x=\left(\begin{matrix}x_a\\x_b \end{matrix}\right)$, $p(x)=\NN(x|\mu,\Sigma)$. $\mu$ se potom dá napsat jako $\mu=\left(\begin{matrix}\mu_a\\\mu_b \end{matrix}\right)$. Podobně matice $\Sigma$ lze rozepsat jako $\Sigma = \left(\begin{matrix}\Sigma_{aa}&\Sigma_{ab}\\\Sigma_{ba}&\Sigma_{bb} \end{matrix}\right)$
+\end{definice}
+
+\begin{lemma}
+\label{inverze}
+$$ \left(\begin{matrix}A&B\\C&D \end{matrix}\right)^{-1}=\left(\begin{matrix}M&-MBD^{-1}\\-D^{-1}CM&D^{-1}+D^{-1}CMBD^{-1} \end{matrix}\right),$$ kde $$M=\left(A-BD^{-1}C\right)^{-1}$$
+\end{lemma}
+
+\begin{proof}
+Asi bych na to šel sporem. Ale udělal bych tam hromadu chyb, tak to nedělám.
+\end{proof}
+
+\begin{definice}
+Inverzi kovarianční matice nazvu $\Lambda$ \footnote{velká lambda. Anglicky se nazývá \emph{precision matrix}, česky vůbec nevim}, $\Lambda=\Sigma^{-1}$.
+\end{definice}
+
+\begin{definice}
+$\Lambda$ se dá taky rozepsat jako $\Lambda = \left(\begin{matrix}\Lambda_{aa}&\Lambda_{ab}\\\Lambda_{ba}&\Lambda_{bb} \end{matrix}\right)$
+\end{definice}
+
+\begin{lemma}
+\label{lambdaprehozy}
+Platí, že $\Lambda_{ab}^T=\Lambda_{ba}$
+\end{lemma}
+\begin{pproof}
+\item pozitivně definitní matice je symetrická, $\Lambda$ je p.d. protože $\Sigma$ je
+\item z toho už je to vidět
+\end{pproof}
+
+\begin{lemma}[Marginál]
+\label{marginal}
+Definuju $x=\left(\begin{matrix}x_a\\x_b \end{matrix}\right)$, $p(x)\sim\NN(x|\mu,\Sigma)$. Potom platí, že marginál $$p(x_a)=\int p(x) d x_b \sim \NN\left(\Sigma_{aa},\mu_a\right)$$
+\end{lemma}
+
+\begin{pproof}
+
+
+\item $\ln p(x) = -\frac{1}{2}(x-\mu)^T\Sigma^{-1}(x-\mu) + c$, $c$ nezávisí na $x$, z definice.
+\item $-\frac{1}{2}(x-\mu)^T\Sigma^{-1}(x-\mu) = -\frac{1}{2}\left(x^T\Sigma^{-1}x\right)+\left(x^T\Sigma^{-1}\mu\right) - \left[\frac{1}{2}\mu^T \Sigma^{-1}\mu\right]$ 
+
+podle Lemma~\ref{obecny_ctverec}, poslední člen můžu brát jako konstantu a tedy dále ignorovat.
+
+
+\item $x^T\Sigma^{-1}x=x_a^T\Lambda_{aa}x_a+2x_b^T\Lambda_{ba}x_a+x_b^T\Lambda_{bb}x_b$ (kvůli Lemmatům~\ref{prehozy}, \ref{nasobmatic}, \ref{lambdaprehozy})
+
+\item $x^T\Sigma^{-1}\mu=x_a^T\Lambda_{aa}\mu_a+x_a^T\Lambda_{ab}\mu_b+x_b^T\Lambda_{ba}\mu_a+x_b^T\Lambda_{bb}\mu_b$
+
+\item $\ln p(x)=-\frac{1}{2}\left(x_a^T\Lambda_{aa}x_a
++2x_b^T\Lambda_{ba}x_a
++x_b^T\Lambda_{bb}x_b\right)+$
+
+$+
+\left(x_a^T
+\Lambda_{aa}\mu_a+x_a^T\Lambda_{ab}
+\mu_b+x_b^T\Lambda_{ba}\mu_a+x_b^T
+\Lambda_{bb}\mu_b\right) +c$ (dosazení)
+
+\item $\ln p(x)=-\frac{1}{2}x_a^T\Lambda_{aa}x_a
+-x_b^T\Lambda_{ba}x_a
+-\frac{1}{2}x_b^T\Lambda_{bb}x_b+$
+
+$+
+x_a^T
+\Lambda_{aa}\mu_a+x_a^T\Lambda_{ab}
+\mu_b+x_b^T\Lambda_{ba}\mu_a+x_b^T
+\Lambda_{bb}\mu_b+c$ (roznásobení)
+
+\item $\ln p(x)=-\frac{1}{2}x_b^T\Lambda_{bb}x_b+x_b^T\left(\Lambda_{ba}\left(-x_a+\mu_a\right)+\Lambda_{bb}\mu_b\right)+
+\left[x_a^T\Lambda_{aa}\left(-\frac{1}{2}x_a+\mu_a\right)+x_a^T\Lambda_{ab}\mu_b\right]+c$ (popřehazování)
+
+\item označíme si celý termín $\left(\Lambda_{ba}\left(-x_a+\mu_a\right)+\Lambda_{bb}\mu_b\right)$ jako $m$
+
+\begin{itemize}
+\item Díváme se na část bez závorky vpravo. 
+%\begin{item}
+\item $-\frac{1}{2}x_b^T\Lambda_{bb}x_b+x_b^Tm$
+\item Podle Lemmatu~\ref{ctverec} můžu přepsat na $-\frac{1}{2}\left(x_b-\Lambda_{bb}^{-1}m\right)^T
+\Lambda_{bb}\left(x_b-\Lambda_{bb}^{-1}m
+\right)+\frac{1}{2}m^T\Lambda_{bb}^{-1} m$
+\end{itemize}
+
+\item $\ln p(x_a)=-\frac{1}{2}\left(x_b-\Lambda_{bb}^{-1}m\right)^T
+\Lambda_{bb}\left(x_b-\Lambda_{bb}^{-1}m
+\right)+$
+
+$+\left[\frac{1}{2}m^T\Lambda_{bb}^{-1} m+
+x_a^T\Lambda_{aa}\left(-\frac{1}{2}x_a+\mu_a\right)+
+x_a^T\Lambda_{ab}\mu_b\right]$
+(viz předchozí body)
+
+\item $p\left(x_a\right)=\int  c_1 \exp\left(-\frac{1}{2}\left(x_b-\Lambda_{bb}^{-1}m\right)^T
+\Lambda_{bb}\left(x_b-\Lambda_{bb}^{-1}m
+\right)\right) \cdot$
+
+$ \exp\left(\frac{1}{2}m^T\Lambda_{bb}^{-1} m+
+x_a^T\Lambda_{aa}\left(-\frac{1}{2}x_a+\mu_a\right)+
+x_a^T\Lambda_{ab}\mu_b\right)  d x_b$
+
+\item Toto vyhovuje Lemma \ref{polomarginal} - 
+$p(x,y)$ z lemmatu je první a druhý člen, druhý je exponentem mult. gausiánu a liší se od něj tedy
+pouze normalizační konstantou, závislou na $\Lambda_{bb};$ a $g(y)$ z lemmatu je třetí člen ($m$ nezávisí na $x_b$)
+\item tj. $p(x_a)\propto \exp\left(\frac{1}{2}m^T\Lambda_{bb}^{-1} m+
+x_a^T\Lambda_{aa}\left(-\frac{1}{2}x_a+\mu_a\right)+
+x_a^T\Lambda_{ab}\mu_b\right)$
+
+\item Jdu dělat úpravy $\frac{1}{2}m^T\Lambda_{bb}^{-1} m+
+x_a^T\Lambda_{aa}\left(-\frac{1}{2}x_a+\mu_a\right)+
+x_a^T\Lambda_{ab}\mu_b$
+\begin {itemize}
+\item pozn: $(a-b)^T\Sigma c=c^T\Sigma(a-b)=c^T\Sigma a-c^T\Sigma b=a^T\Sigma c-b^T\Sigma c$, pokud jsou výsledky skaláry a $\Sigma^T=\Sigma$
+\item $m^T\Lambda_{bb}^{-1} m=\left(\Lambda_{ba}\left(-x_a+\mu_a\right)+\Lambda_{bb}\mu_b\right)^T
+\Lambda_{bb}^{-1}\left(\Lambda_{ba}\left(
+x_a+\mu_a\right)+\Lambda_{bb}\mu_b\right)=$
+
+$=\left(\Lambda_{ba}\left(-x_a+\mu_a\right)\right)^T\Lambda_{bb}^{-1}
+\left(\Lambda_{ba}\left(-x_a+\mu_a\right)\right)+$
+
+$+2\left(\Lambda_{ba}\left(-x_a+\mu_a\right)\right)^T\Lambda_{bb}^{-1}
+\Lambda_{bb}\mu_b+
+\left(\Lambda_{bb}\mu_b\right)^T
+\Lambda_{bb}^{-1}
+\Lambda_{bb}\mu_b=$
+
+$=\left(\Lambda_{ba}\mu_a-\Lambda_{ba}x_a\right)
+^T\Lambda_{bb}^{-1}
+\left(\Lambda_{ba}\mu_a-\Lambda_{ba}x_a\right)+$
+
+\nopagebreak
+
+$+2\left(\Lambda_{ba}\mu_a-\Lambda_{ba}x_a
+\right)^T\Lambda_{bb}^{-1}
+\Lambda_{bb}\mu_b+
+\mu_b^T\Lambda_{bb}^T
+\Lambda_{bb}^{-1}
+\Lambda_{bb}\mu_b=$
+
+$=\left(\Lambda_{ba}\mu_a\right)^T\Lambda_{bb}^{-1}\Lambda_{ba}\mu_a
+-2\left(\Lambda_{ba}\mu_a\right)^T\Lambda_{bb}^{-1}\Lambda_{ba}x_a
++\left(\Lambda_{ba}x_a\right)^T\Lambda_{bb}^{-1}\Lambda_{ba}x_a+$
+
+\nopagebreak
+
+$+2\left(\Lambda_{ba}\mu_a\right)^T\Lambda_{bb}^{-1}
+\Lambda_{bb}\mu_b
+-2\left(\Lambda_{ba}x_a
+\right)^T\Lambda_{bb}^{-1}
+\Lambda_{bb}\mu_b+
+\mu_b^T\Lambda_{bb}^T
+\Lambda_{bb}^{-1}
+\Lambda_{bb}\mu_b=$
+
+$=c_1-2x_a^T\left(\Lambda_{ba}^T\Lambda_{bb}^{-1}\Lambda_{ba}\mu_a\right)
++x_a^T\left(\Lambda_{ba}^T\Lambda_{bb}^{-1}\Lambda_{ba}\right)x_a
++c_2-2x_a^T\left(\Lambda_{ba}^T
+\Lambda_{bb}^{-1}
+\Lambda_{bb}\mu_b\right)+c_3=$
+
+
+$=-2x_a^T\left(\Lambda_{ba}^T\Lambda_{bb}^{-1}\Lambda_{ba}\mu_a\right)
++x_a^T\left(\Lambda_{ba}^T\Lambda_{bb}^{-1}\Lambda_{ba}\right)x_a
+-2x_a^T\left(\Lambda_{ba}^T
+\mu_b\right)+c_4$ 
+
+$=-2x_a^T\left(\Lambda_{ab}\Lambda_{bb}^{-1}\Lambda_{ba}\mu_a\right)
++x_a^T\left(\Lambda_{ab}\Lambda_{bb}^{-1}\Lambda_{ba}\right)x_a
+-2x_a^T\left(\Lambda_{ab}
+\mu_b\right)+c_4$ 
+
+kde $c_n$ jsou konstanty nezávislé na $x_a$
+
+\item $\frac{1}{2}m^T\Lambda_{bb}^{-1} m+
+x_a^T\Lambda_{aa}\left(-\frac{1}{2}x_a+\mu_a\right)+
+x_a^T\Lambda_{ab}\mu_b=$
+
+$= \frac{1}{2}\left(-2x_a^T\left(\Lambda_{ab}\Lambda_{bb}^{-1}\Lambda_{ba}\mu_a\right)
++x_a^T\left(\Lambda_{ab}\Lambda_{bb}^{-1}\Lambda_{ba}\right)x_a
+-2x_a^T\left(\Lambda_{ab}
+\mu_b\right)\right)+$
+\nopagebreak
+
+$+
+x_a^T\Lambda_{aa}\left(-\frac{1}{2}x_a+\mu_a\right)+
+x_a^T\Lambda_{ab}\mu_b+c_5=$
+
+$=
+-x_a^T \left(\Lambda_{ab}\Lambda_{bb}^{-1} \Lambda_{ba}\mu_a\right)+
+x_a^T\left (\frac{1}{2}\Lambda_{ab}\Lambda_{bb}^{-1}\Lambda_{ba}\right)x_a
+-x_a^T\left(\Lambda_{ab}
+\mu_b\right)+$
+\nopagebreak
+
+$+
+x_a^T\left(-\frac{1}{2}\Lambda_{aa}\right)x_a+
+x_a^T\left(\Lambda_{aa}\mu_a\right)+
+x_a^T\left(\Lambda_{ab}\mu_b\right)+c_5=$
+
+
+$=
+-x_a^T \left(\Lambda_{ab}\Lambda_{bb}^{-1} \Lambda_{ba}\mu_a\right)+
+x_a^T\left (\frac{1}{2}\Lambda_{ab}\Lambda_{bb}^{-1}\Lambda_{ba}\right)x_a
++$
+\nopagebreak
+
+$+
+x_a^T\left(-\frac{1}{2}\Lambda_{aa}\right)x_a+
+x_a^T\left(\Lambda_{aa}\mu_a\right)+c_5=$
+
+
+$=
+x_a^T \left(\Lambda_{aa}\mu_a-\Lambda_{ab}\Lambda_{bb}^{-1} \Lambda_{ba}\mu_a\right)+
+x_a^T\left (\frac{1}{2}\Lambda_{ab}\Lambda_{bb}^{-1}\Lambda_{ba}
+-\frac{1}{2}\Lambda_{aa}\right)x_a+c_5=$
+
+$=-\frac{1}{2}x_a^T\left (\Lambda_{aa}-\Lambda_{ab}\Lambda_{bb}^{-1}\Lambda_{ba}
+\right)x_a+x_a^T \left(\left(\Lambda_{aa}-\Lambda_{ab}\Lambda_{bb}^{-1} \Lambda_{ba}\right)\mu_a\right)+c_5$
+
+\end {itemize}
+\item podle Lemma~\ref{ctverec} a definice $\NN$ tedy platí, že $p\left(x_a\right)\sim\NN\left(
+\left(\Lambda_{aa}-\Lambda_{ab}\Lambda_{bb}^{-1} \Lambda_{ba}\right)^{-1},\mu_a
+\right)$
+
+\item podle Lemma~\ref{inverze} je to ve skutečnosti $p\left(x_a\right)\sim\NN\left(\Sigma_{aa},\mu_a
+\right)$ 
+\end{pproof}
+
+\begin{lemma}[Marginál násobku]
+\label{convolution}
+Pokud platí $p(x)=\NN\left(x|\mu,\Lambda^{-1}\right)$, $p(y|x)=\NN\left(y|Ax+b,L^{-1}\right),$ tak poté $$p(y)=\int p(y|x)p(x) d x \sim \NN\left(A\mu+b,L^{-1}+A\Lambda^{-1} A^T\right)$$
+\end{lemma}
+\begin{pproof}
+\item Podíváme-li se na Lemma~\ref{marginal} a definujeme si například $z=\left(\begin{matrix} x \\ y \end{matrix} \right)$, vidíme, že jde o stejný případ. Tj. musíme spočítat matici a rozptyl $p(y|x)p(x)$ a \uv{výsek}, odpovídající $y,$ je potřebný výsledek.
+\item $\ln p(z)=\ln p(x)+\ln p(y|x)$ - definice
+\item $\ln p(z) = -\frac{1}{2}(x-\mu)^T\Lambda(x-\mu)-\frac{1}{2}(y-Ax-b)^TL(y-Ax-b)+c$
+\begin {itemize}
+\item $(x-\mu)^T\Lambda(x-\mu)=x^T\Lambda x-2x^T\Lambda\mu+c$
+\item $(y-(Ax+b))^TL(y-(Ax+b))=y^TLy - 2(Ax+b)^TLy + (Ax+b)^TL(Ax+b) =$
+
+$= y^TLy - 2x^TA^TLy -2y^TLb+x^TA^TLAx+2x^TLAb+c$
+\end{itemize}
+\item $\ln p(z)=-\frac{1}{2}x^T\Lambda x+x^T\Lambda\mu-\frac{1}{2}y^TLy +x^TA^TLy +y^TLb-\frac{1}{2}x^TA^TLAx-x^TLAb+c=$
+
+$=\left[-\frac{1}{2}x^T\left(\Lambda+A^TLA  \right)x-\frac{1}{2}y^TLy+\frac{1}{2}y^TLAx+ \frac{1}{2}x^TA^TLy\right]+\left[x^T\left(\Lambda\mu - A^TLb\right) + y^TLb \right]$
+\item první závorka:
+
+\begin{itemize}
+\item $-\frac{1}{2}x^T\left(\Lambda+A^TLA  \right)x-\frac{1}{2}y^TLy+\frac{1}{2}y^TLAx+ \frac{1}{2}x^TA^TLy=$
+
+$= -\frac{1}{2}\left( \begin{matrix}x \\ y\end{matrix} \right)^T  \left( \begin{matrix}\Lambda+A^TLA & -A^TL \\ -LA&L\end{matrix} \right)\left( \begin{matrix}x \\ y\end{matrix} \right)$
+\item chci $\left( \begin{matrix}\Lambda+A^TLA & -A^TL \\ -LA&L\end{matrix} \right)^{-1},$ chci použít Lemma~\ref{inverze}
+
+
+\item $M=\left(\Lambda+A^TLA-A^TL\left(L\right)^{-1}LA\right)^{-1}= \Lambda^{-1}$
+
+\item $\left( \begin{matrix}\Lambda+A^TLA & -A^TL \\ -LA&L\end{matrix} \right)^{-1}=$
+
+$=\left(\begin{matrix}
+\Lambda^{-1}& %yes
+-\Lambda^{-1}\left(-A^TL\right)L^{-1}\\ %yes
+-L^{-1}\left(-LA\right)\Lambda^{-1}& %yes
+L^{-1}+L^{-1}\left(-LA\right)\Lambda^{-1}\left(-A^TL\right)L^{-1} \end{matrix}\right)=$
+
+$=\left( \begin{matrix} \Lambda^{-1}& \Lambda^{-1}A^T \\ A \Lambda^{-1} & L^{-1}+A\Lambda^{-1}A^T \end{matrix} \right)$
+\item první závorka je tedy $ -\frac{1}{2}\left( \begin{matrix}x \\ y\end{matrix} \right)^T \left( \begin{matrix} \Lambda^{-1}& \Lambda^{-1}A^T \\ A \Lambda^{-1} & L^{-1}+A\Lambda^{-1}A^T \end{matrix} \right) ^{-1}\left( \begin{matrix}x \\ y\end{matrix} \right)$
+\end{itemize}
+\item druhá závorka jde napsat jako $\left(\begin{matrix}x\\y\end{matrix} \right)^T\left(\begin{matrix} \Lambda\mu - A^TLb \\Lb\end{matrix} \right)$
+\item tj. $ln(p)= -\frac{1}{2}\left( \begin{matrix}x \\ y\end{matrix} \right)^T \left( \begin{matrix} \Lambda^{-1}& \Lambda^{-1}A^T \\ A \Lambda^{-1} & L^{-1}+A\Lambda^{-1}A^T \end{matrix} \right) ^{-1}\left( \begin{matrix}x \\ y\end{matrix} \right) + \left(\begin{matrix}x\\y\end{matrix} \right)^T\left(\begin{matrix} \Lambda\mu - A^TLb \\Lb\end{matrix} \right)+c$
+\item Použijeme Lemma~\ref{ctverec} pro převod na exponent gausiánu
+\item A nakonec použijeme Lemma~\ref{marginal}.
+
+
+\end{pproof}
+
+\begin{lemma}
+\label{unimulti}
+Mějme $x_i\sim\NN(\bar{x}_i,\sigma^2) \forall i \in J$ pro nějaké konečné $J$ ($\NN$ je tady univariate gaussian, $x_i$ skalár). Pak $\left(x_1,x_2,...,x_{\left|J\right|}\right)^T\sim \NN\left(\left(\bar{x}_1,\bar{x}_2,...,\bar{x}_{\left|J\right|} \right)^T,\sigma^2I\right)$
+ (kde $I$ je jednotková matice a $\NN$ je multivariate gaussián)
+\end{lemma}
+
+\begin{pproof}
+\item $x$ jsou na sobě nezávislé.
+
+\item Tedy $p\left(\left(x_1,x_2,...,x_{\left|J\right|}\right)^T\right)=p(x_1) p(x_2)p(x_3)...$
+\item $p(x_j)\propto \exp\left(-\frac{1}{2}\left(x_j-\bar{x}_{\left|J\right|}^2
+\sigma^2\right)\right)$ z definice
+\item tedy $p\left(\left(x_1,x_2,...,x_{\left|J\right|}\right)^T\right)
+\propto
+\sum_j -\frac{1}{2}(x_j-\bar{x}_j)^2\sigma^2$
+\item $\sum_j -\frac{1}{2}(x_j-\bar{x}_j)^2\sigma^2=-\frac{1}{2}\sigma^2\sum_j (x_j-\bar{x}_j)^2=$
+
+$= -\frac{1}{2}\sigma^2\left(\left(x_1,x_2,...,x_{\left|J\right|}\right) -\left(\bar{x}_1,\bar{x}_2,...,\bar{x}_{\left|J\right|} \right) \right) \left(\left(x_1,x_2,...,x_{\left|J\right|}\right) -\left(\bar{x}_1,\bar{x}_2,...,\bar{x}_{\left|J\right|} \right) \right)^T$
+
+$= -\frac{1}{2}\sigma^2\left(\left(x_1,x_2,...,x_{\left|J\right|}\right)^T -\left(\bar{x}_1,\bar{x}_2,...,\bar{x}_{\left|J\right|} \right)^T \right)^T \left(\left(x_1,x_2,...,x_{\left|J\right|}\right)^T -\left(\bar{x}_1,\bar{x}_2,...,\bar{x}_{\left|J\right|} \right)^T \right)$
+
+$= -\frac{1}{2}\sigma^2\left(\left(x_1,x_2,...,x_{\left|J\right|}\right)^T -\left(\bar{x}_1,\bar{x}_2,...,\bar{x}_{\left|J\right|} \right)^T \right)^T I\left(\left(x_1,x_2,...,x_{\left|J\right|}\right)^T -\left(\bar{x}_1,\bar{x}_2,...,\bar{x}_{\left|J\right|} \right)^T \right)$
+
+$= -\frac{1}{2}\left(\left(x_1,x_2,...,x_{\left|J\right|}\right)^T -\left(\bar{x}_1,\bar{x}_2,...,\bar{x}_{\left|J\right|} \right)^T \right)^T \sigma^2I\left(\left(x_1,x_2,...,x_{\left|J\right|}\right)^T -\left(\bar{x}_1,\bar{x}_2,...,\bar{x}_{\left|J\right|} \right)^T \right)$
+
+a z toho už nám věta plyne
+
+\end{pproof}
+
+\subsection{Zpátky k problému - prediktivní distribuce}
+\begin{itemize}
+\item Hlavní, co chceme zjistit, je prediktivní distrubuce. Tj. $$p(y_{new}|y_{old},x_{old},x_{new},R), $$ kde $R$ je model, co byl popsán na začátku (v $R$ jsou \uv{zahrnuty} konstanty modelu). Pro jednodušší zápis nebudu podmínění $R$ do dalších vzorečků psát.
+\end{itemize}
+
+\begin{definice}
+Maticí $\Phi_{old}$ myslím matici $n \cdot M$, kde $n$ je počet funkcí $\phi$, $M$ je velikost vektoru $x_{old}$, ${\Phi_{old}}_{i,j}=\phi_i({x_{old}}_{j})$. Totéž s~$\Phi_{new}$.
+\end{definice}
+
+\begin{lemma}[Přepis na marginál]
+\label{prepis_na_marginal}
+$$p(y_{new}|y_{old},x_{old},x_{new})=\int p(y_{new}|w,x_{new})p(w|y_{old},x_{old})dw$$
+\end{lemma}
+
+\begin{pproof}
+\item $p(y_{new}|y_{old},x_{old},x_{new})=\int p(y_{new}|w,y_{old},x_{old},x_{new})p(w|y_{old},x_{old},x_{new})dw$
+\item $ p(y_{new}|w,y_{old},x_{old},x_{new})= p(y_{new}|w,x_{new})$ - pokud už mám váhy, tak výsledek nezávisí na ničem dalším
+\item $p(w|y_{old},x_{old},x_{new})=p(w|y_{old},x_{old})$, protože nová data bez zdroje nám o váhách nic neřeknou
+\end{pproof}
+
+\begin{lemma}[Přepis posterioru]
+\label{prepis}
+$$p(w|y_{old},x_{old})\propto p(w)p(y_{old}|x_{old},w)$$
+
+Pozn.: $p(w|y_{old},x_{old})$ je bayesovský posterior, $p(w)$ je prior, $p(y_{old}|x_{old},w)$ je likelihood
+\end{lemma}
+\begin {pproof}
+\item Z Bayesova pravidla $p(w|y_{old},x_{old}) = \frac{p(w|x_{old})p(y_{old}|w,x_{old})}{p(y_{old}|x_{old})}$
+\item Z hlediska $w$ je $p(y_{old}|x_{old})$ konstanta
+\item $p(w|x_{old})=p(w)$ - bez informace o $y_{old}$ nám $x_{old}$ nic neřekne
+\end{pproof}
+
+\begin{lemma}[Likelihood]
+\label{likelihood}
+$$y_{new}|w,x_{new}\sim\NN(\Phi_{new}w,\sigma^2I),$$ kde $I$ je jednotková matice.
+% a $f(x)$ je vektor $\left(f\left(x_1\right),f\left(x_2\right),...,\\f\left(x_{\left|x\right|}\right)\right)^T$.
+ Podobně $y_{old}|w,x_{old}\sim\NN(\Phi_{old}w,\sigma^2I)$\end{lemma}
+
+\begin{pproof}
+\item pro $y_{new}$ a $y_{old}$ je následující postup stejný - prostě máme vstup a váhy a chceme prav\-dě\-po\-dob\-nost výstupu. Tj. budu psát jen $x$ a $y$ (resp $x_i$ a $y_i$) 
+\item $f(x)$ si nazvu vektor $\left(f\left(x_1\right),f\left(x_2\right),...,\\f\left(x_{\left|x\right|}\right)\right)^T$
+\item podle modelu $y_i=f\left(x_i\right)+\varepsilon_i \forall i \in \left\{1...\left|y\right|\right\}$, tj. $y_i\sim\NN\left(f\left(x_i\right),\sigma^2\right)$
+\item To jde napsat také jako $y \sim\NN(f(x),\sigma^2I)$ podle Lemma~\ref{unimulti}
+\item $f(x)_i=f(x_i)= \sum_{m=1}^Mw_m\phi_m(x_i),$ - to je totéž, co $[\Phi w]_i$
+\end{pproof}
+
+\begin{lemma}[Výpočet posterioru]
+\label{vypocet_posterior}
+$w|y_{old},x_{old} \sim \NN(\hat{w},\hat{\Sigma}),$ kde $$\hat{\Sigma}=\left( \Sigma_0^{-1}+\sigma^{-2}\Phi_{old}^T \Phi_{old}\right)^{-1},$$ $$\hat{w}=\hat{\Sigma}\left(\Sigma_0^{-1} \mu_0+\sigma^{-2}\Phi_{old}^Ty_{old}\right)$$
+\end{lemma}
+\begin{pproof}
+\item Podle Lemmatu~\ref{prepis} víme, že $p(w|y_{old},x_{old})\propto p(w)p(y_{old} | x_{old},w) $ 
+\item Podle Definice~\ref{defmodel} $w\sim \NN(\mu_0,\Sigma_0)$ , tj $\ln p(w)= \left(-\frac{1}{2}
+\left(w-\mu_0\right)^T
+\Sigma_0^{-1} \left(w-\mu_0\right)\right)+c,$ to lze přepsat podle Lemma~\ref{obecny_ctverec} jako $-\frac{1}{2}w^T\Sigma_0^{-1}w + w^T\Sigma_0^{-1}\mu_0+\left[-\frac{1}{2}\
+\mu_0^T\Sigma_0^{-1}\mu_0+c\right],$ poslední závorka je konstanta
+
+\item Podle Lemma~\ref{likelihood} $y_{old}|x_{old},w\sim\NN(\Phi _{old}w,\sigma^2I)$, tj.
+
+ $\ln p(y_{old}|x_{old},w)= \left(-\frac{1}{2}
+\left(y_{old}-\Phi _{old}w\right)^T\left(
+\sigma^{2}I\right)^{-1} \left(y_{old}-\Phi _{old}w\right)\right)+c=$
+
+$=\left(-\frac{1}{2}\sigma^{-2}
+\left(y_{old}-\Phi _{old}w\right)^T
+ \left(y_{old}-\Phi _{old}w\right)\right)+c=$ 
+
+$=\left(-\frac{1}{2}\sigma^{-2}
+\left(y_{old}^Ty_{old}- 
+2w^T\Phi _{old}^Ty_{old}+w^T\Phi _{old}^T\Phi _{old}w\right)\right)+c$
+
+\item tedy $\ln p(w|y_{old},x_{old})=$
+
+$\left(-\frac{1}{2}w^T\Sigma_0^{-1}w + w^T\Sigma_0^{-1}\mu_0\right) +\left(-\frac{1}{2}\sigma^{-2}
+\left(y_{old}^Ty_{old}- 
+2w^T\Phi _{old}^Ty_{old}+w^T\Phi _{old}^T\Phi _{old}w\right)\right)+c$
+
+\item V tomto okamžiku už můžeme brát $y_{old}$ jako konstantu, neboť nezávisí na $w$. 
+
+\item  $\ln p(w|y_{old},x_{old})=$
+
+$\left(-\frac{1}{2}w^T\Sigma_0^{-1}w + w^T\Sigma_0^{-1}\mu_0\right) +\left(-\frac{1}{2}\sigma^{-2}
+\left(- 
+2w^T\Phi _{old}^Ty_{old}+w^T\Phi _{old}^T\Phi _{old}w\right)\right)+c$
+
+$=-\frac{1}{2}w^T\Sigma_0^{-1}w + w^T\Sigma_0^{-1}\mu_0 +
+w^T\sigma^{-2}\Phi _{old}^Ty_{old}-\frac{1}{2}\sigma^{-2}w^T\Phi _{old}^T\Phi _{old}w+c$
+
+\item Opět chceme převést do formy Lemma~\ref{ctverec}. 
+
+\item  $\ln p(w|y_{old},x_{old})=$
+
+$=-\frac{1}{2}w^T\left(\Sigma_0^{-1}+\sigma^{-2}\Phi _{old}^T\Phi _{old}\right)w + w^T\left(\Sigma_0^{-1}\mu_0 +
+\sigma^{-2}\Phi _{old}^Ty_{old}\right)+c=$
+
+$=-\frac{1}{2}w^T\hat{\Sigma}^{-1}w+ w^T\left(\hat{\Sigma}^{-1}\hat{w}\right)$
+
+\item Použijeme Lemma~\ref{ctverec}. 
+\end{pproof}
+
+\begin{veta}[Predictive]
+$$y_{new}|y_{old},x_{old},x_{new}\sim\NN\left(
+\Phi_{new}\hat{w}, \sigma^{2}I+\Phi_{new}\hat{\Sigma} \Phi_{new}^T\right)$$
+\end{veta}
+\begin{pproof}
+\item Podle Lemmatu~\ref{prepis_na_marginal} víme, že 
+$p(y_{new}|y_{old},x_{old},x_{new})=\int p(y_{new}|w,x_{new})p(w|y_{old},x_{old})dw$
+\item Podle Lemmatu~\ref{likelihood} víme, že $y_{new}|w,x_{new}\sim\NN(\Phi_{new}w,\sigma^2I)$
+\item Podle Lemmatu~\ref{vypocet_posterior} víme, že $w|y_{old},x_{old} \sim \NN(\hat{w},\hat{\Sigma})$
+\item Použijeme Lemma~\ref{convolution}, kde přepíšeme
+\begin{itemize}
+\item $y \rightarrow y_{new}$
+\item $x \rightarrow w$
+\item $\mu \rightarrow \hat{w}$
+\item $\Lambda \rightarrow \hat{\Sigma}^{-1}$
+\item $L \rightarrow \sigma^{-2}I$
+\item $b \rightarrow 0$
+\item $A \rightarrow \Phi_{new}$
+%Pokud platí $p(x)=\NN\left(x|\mu,%\Lambda^{-1}\right)$, $p(y|x)=\NN\left(y|%Ax+b,L^{-1}\right),$
+
+\item $\NN\left(A\mu+b,L^{-1}+A\Lambda^{-1} A^T\right)
+\rightarrow
+\NN\left( \Phi_{new}\hat{w}, \sigma^{2}I+\Phi_{new}\hat{\Sigma} \Phi_{new}^T\right)$
+\end{itemize}
+\end{pproof}
+
+\section{Regrese s neznámou $\sigma^2$}
+\subsection{Pomocné definice a lemmata}
+\begin{definice}[Gamma funkce]
+	$\Gamma(z) = \int_0^\infty  t^{z-1} e^{-t}\,dt$
+\end{definice}
+\begin{definice}[Gamma distribuce]
+	$$\Gam(x|a,b) = \frac{1}{\Gamma(a)} b^a x^{a-1}\exp(-bx)$$
+\end{definice}
+\begin{lemma}
+$\Gam(x|a,b)\propto x^{a-1}\exp (-bx)$
+\end{lemma}
+\begin{definice}[Normal-Gamma]
+$$\NoG(w,\lambda|\mu_0,\Sigma_0,a,b)=\NN(w|\mu_0,\lambda^{-1}\Sigma_0)\cdot\Gam(\lambda|a,b)$$
+
+kde $w$ je vektor, $\lambda$ je skalár, $\mu_0$ je vektor, $\Sigma_0$ je matice, $a$ a $b$ jsou skaláry.
+
+Pozn: Tato distribuce je na různých místech definována různě, já použiji tuto definici.
+\end{definice}
+
+
+
+\begin{lemma}
+\label{normalgammalog}
+$$\ln\left(\NoG\left(w,\lambda|\mu_0,\Sigma_0,a,b\right)
+\right)= \ln\left(\lambda^{a+\frac{\left|w\right|-2}{2}}\right)
+\left(-\frac{1}{2}\lambda\left(\left(w-\mu_0\right)^T \Sigma_0^{-1}\left(w- \mu_0\right)+2b\right)\right)+c$$
+\end{lemma}
+\begin{pproof}
+\item $\NN(w|\mu_0,\lambda^{-1}\Sigma_0) = (2\pi)^{-\frac{\left|w\right|}{2}} 
+\left|\lambda^{-1}\Sigma_0\right| ^{-\frac{1}{2}} \exp\left(-\frac{1}{2}\left(\left(w-\mu_0\right)^T \Sigma_0^{-1}\lambda\left(w- \mu_0\right)\right)\right)=$
+
+$=(2\pi)^{-\frac{\left|w\right|}{2}} 
+\left(\lambda^{-\left|w\right|}\left|\Sigma_0\right|\right) ^{-\frac{1}{2}} \exp\left(-\frac{1}{2}\left(\left(w-\mu_0\right)^T \Sigma_0^{-1}\lambda\left(w- \mu_0\right)\right)\right)=$
+
+$=(2\pi)^{-\frac{\left|w\right|}{2}} 
+\left|\Sigma_0\right|^{-\frac{1}{2}}
+\lambda^{\frac{\left|w\right|}{2}} \exp\left(-\frac{1}{2}\left(\left(w-\mu_0\right)^T \Sigma_0^{-1}\lambda\left(w- \mu_0\right)\right)\right)=$
+
+$=C
+\lambda^{\frac{\left|w\right|}{2}} \exp\left(-\frac{1}{2}\lambda\left(\left(w-\mu_0\right)^T \Sigma_0^{-1}\left(w- \mu_0\right)\right)\right)$
+\item (pozor, $\lambda$ teď není konstanta)
+
+\item $\Gam(\lambda|a,b)=C\lambda^{a-1}\exp(-b\lambda)$
+
+\item $\NoG\left(w,\lambda|\mu_0,\Sigma_0,a,b\right)=C\lambda^{a+\frac{\left|w\right|-2}{2}}\exp\left(-\frac{1}{2}\lambda\left(\left(w-\mu_0\right)^T \Sigma_0^{-1}\left(w- \mu_0\right)+2b\right)\right)$
+\end{pproof}
+
+\begin{lemma}
+\label{pozdefpoc}
+Když $\Sigma$ je poz. def. matice, tak
+$$(y-X\beta)^T(y-X\beta) +(\beta-\beta_0)\Sigma^{-1}(\beta-\beta_0)
++2b
+=
+(\beta-\beta^*)^T(\Sigma^*)^{-1}(\beta-\beta^*)+2b^*$$
+
+kde
+
+\begin{align*}
+\beta^* &= (\Sigma^{-1}+X^TX)^{-1}(\Sigma^{-1}\beta_0+X^Ty) \\
+\Sigma^* &= (\Sigma^{-1}+X^TX)^{-1} \\
+b^* &= b+\frac{1}{2}(\beta_0^T\Sigma^{-1}\beta_0+y^Ty
+-(\beta^*)^T(\Sigma^*)^{-1}\beta^*)
+\end{align*}
+
+\end{lemma}
+\begin{pproof}
+\item Vezmu nejdřív levou stranu a rozpočítám jí, pak pravou a rozpočítám jí a obě vyjdou stejně.
+\item $(y-X\beta)^T(y-X\beta) +(\beta-\beta_0)\Sigma^{-1}(\beta-\beta_0)
++2b=$
+
+$=y^Ty-2y^TX\beta+\beta^TX^TX\beta
++\beta^T\Sigma^{-1}\beta-2\beta_0^T\Sigma^{-1}\beta
++\beta_0^T\Sigma^{-1}\beta_0+2b$
+
+\item (Jak jsem psal někde na začátku - protože neumím dokazovat pozitivní definitnost, tak jí nedokazuju a předpokládám jí u $\Sigma^*$)
+
+\item $(\beta-\beta^*)^T(\Sigma^*)^{-1}(\beta-\beta^*)=$
+
+$= (\beta- (\Sigma^{-1}+X^TX)^{-1}(\Sigma^{-1}\beta_0+X^Ty))^T((\Sigma^{-1}+X^TX)^{-1} )^{-1}\cdot$
+\nopagebreak
+
+$\cdot(\beta-(\Sigma^{-1}+X^TX)^{-1}(\Sigma^{-1}\beta_0+X^Ty))=$
+
+$= (\beta- (\Sigma^{-1}+X^TX)^{-1}(\Sigma^{-1}\beta_0+X^Ty))^T
+(\Sigma^{-1}+X^TX)\cdot$
+\nopagebreak
+
+$\cdot(\beta-(\Sigma^{-1}+X^TX)^{-1}(\Sigma^{-1}\beta_0+X^Ty))=$
+
+$=\beta^T(\Sigma^{-1}+X^TX)\beta-
+2\beta^T(\Sigma^{-1}+X^TX)(\Sigma^{-1}+X^TX)^{-1}(\Sigma^{-1}\beta_0+X^Ty)
++ $
+\nopagebreak
+
+$+(
+(\Sigma^{-1}+X^TX)^{-1}(\Sigma^{-1}\beta_0+X^Ty)
+)^T
+(\Sigma^{-1}+X^TX)
+(\Sigma^{-1}+X^TX)^{-1}(\Sigma^{-1}\beta_0+X^Ty)=
+$
+
+$=\beta^T(\Sigma^{-1}+X^TX)\beta-
+2\beta^T(\Sigma^{-1}\beta_0+X^Ty)
++ $
+\nopagebreak
+
+$+(
+(\Sigma^{-1}+X^TX)^{-1}(\Sigma^{-1}\beta_0+X^Ty)
+)^T
+(\Sigma^{-1}\beta_0+X^Ty)=
+$
+
+
+$=\beta^T(\Sigma^{-1}+X^TX)\beta-
+2\beta^T(\Sigma^{-1}\beta_0+X^Ty)
++ $
+\nopagebreak
+
+$+
+(\Sigma^{-1}\beta_0+X^Ty)^T
+((\Sigma^{-1}+X^TX)^{-1})^T
+(\Sigma^{-1}\beta_0+X^Ty)=
+$
+
+$=\beta^T\Sigma^{-1}\beta
++\beta^TX^TX\beta
+-2\beta^T\Sigma^{-1}\beta_0
+-2\beta^TX^Ty
++ $
+\nopagebreak
+
+$+
+(\Sigma^{-1}\beta_0+X^Ty)^T
+((\Sigma^{-1}+X^TX)^{-1})^T
+(\Sigma^{-1}\beta_0+X^Ty)=
+$
+
+$=\beta^T\Sigma^{-1}\beta
++\beta^TX^TX\beta
+-2\beta^T\Sigma^{-1}\beta_0
+-2\beta^TX^Ty
++ $
+\nopagebreak
+
+$+
+\beta_0^T{\Sigma^{-1}}^T
+((\Sigma^{-1}+X^TX)^{-1})^T
+\Sigma^{-1}\beta_0
++2
+y^TX
+((\Sigma^{-1}+X^TX)^{-1})^T
+\Sigma^{-1}\beta_0
++$
+\nopagebreak
+
+
+$+y^TX
+((\Sigma^{-1}+X^TX)^{-1})^T
+X^Ty=
+$
+
+$=\beta^T\Sigma^{-1}\beta
++\beta^TX^TX\beta
+-2\beta^T\Sigma^{-1}\beta_0
+-2\beta^TX^Ty
++ $
+\nopagebreak
+
+$+
+\beta_0^T{\Sigma^{-1}}
+(\Sigma^{-1}+X^TX)^{-1}
+\Sigma^{-1}\beta_0
++2
+y^TX
+(\Sigma^{-1}+X^TX)^{-1}
+\Sigma^{-1}\beta_0
++$
+\nopagebreak
+
+
+$+y^TX
+(\Sigma^{-1}+X^TX)^{-1}
+X^Ty=
+$
+
+$=\beta^T\Sigma^{-1}\beta
++\beta^TX^TX\beta
+-2\beta^T\Sigma^{-1}\beta_0
+-2\beta^TX^Ty
++ $
+\nopagebreak
+
+$+
+\beta_0^T{\Sigma^{-1}}
+{\Sigma^*}
+\Sigma^{-1}\beta_0
++2
+y^TX
+{\Sigma^*}
+\Sigma^{-1}\beta_0
++$
+\nopagebreak
+
+
+$+y^TX
+{\Sigma^*}
+X^Ty
+$
+
+\item $2b^*=2b+\beta_0^T\Sigma^{-1}\beta_0+y^Ty
+-(\beta^*)^T(\Sigma^*)^{-1}\beta^*=$
+
+$=2b+\beta_0^T\Sigma^{-1}\beta_0+y^Ty
+-$
+\nopagebreak
+
+$( (\Sigma^{-1}+X^TX)^{-1}(\Sigma^{-1}\beta_0+X^Ty))^T((\Sigma^{-1}+X^TX)^{-1})^{-1} (\Sigma^{-1}+X^TX)^{-1}\cdot
+$
+\nopagebreak
+
+$
+(\Sigma^{-1}\beta_0+X^Ty)=$
+
+$=2b+\beta_0^T\Sigma^{-1}\beta_0+y^Ty
+-$
+\nopagebreak
+
+$( (\Sigma^{-1}+X^TX)^{-1}(\Sigma^{-1}\beta_0+X^Ty))^T(\Sigma^{-1}\beta_0+X^Ty)
+=$
+
+$=2b+\beta_0^T\Sigma^{-1}\beta_0+y^Ty
+-$
+\nopagebreak
+
+$
+(\Sigma^{-1}\beta_0+X^Ty)^T
+(\Sigma^{-1}+X^TX)^{-1}
+(\Sigma^{-1}\beta_0+X^Ty)
+=$
+
+$=2b+\beta_0^T\Sigma^{-1}\beta_0+y^Ty
+-($
+\nopagebreak
+
+$
+\beta_0^T\Sigma^{-1}
+(\Sigma^{-1}+X^TX)^{-1}
+\Sigma^{-1}\beta_0+
+$
+\nopagebreak
+
+$+
+2\Sigma^{-1}\beta_0
+(\Sigma^{-1}+X^TX)^{-1}
+X^Ty
++
+y^TX
+(\Sigma^{-1}+X^TX)^{-1}
+X^Ty)
+=$
+
+
+$=2b+\beta_0^T\Sigma^{-1}\beta_0+y^Ty
+-
+\beta_0^T\Sigma^{-1}
+\Sigma^*
+\Sigma^{-1}\beta_0-
+2\Sigma^{-1}\beta_0
+\Sigma^*
+X^Ty
+-
+y^TX
+\Sigma^*
+X^Ty
+$
+
+\item $(\beta-\beta^*)^T(\Sigma^*)^{-1}(\beta-\beta^*)+2b^*=$
+
+$=\beta^T\Sigma^{-1}\beta
++\beta^TX^TX\beta
+-2\beta^T\Sigma^{-1}\beta_0
+-2\beta^TX^Ty
++ $
+\nopagebreak
+
+$+
+\beta_0^T{\Sigma^{-1}}
+{\Sigma^*}
+\Sigma^{-1}\beta_0
++2
+y^TX
+{\Sigma^*}
+\Sigma^{-1}\beta_0
++y^TX
+{\Sigma^*}
+X^Ty+
+$
+\nopagebreak
+
+$2b+\beta_0^T\Sigma^{-1}\beta_0+y^Ty
+-
+\beta_0^T\Sigma^{-1}
+\Sigma^*
+\Sigma^{-1}\beta_0-
+2\Sigma^{-1}\beta_0
+\Sigma^*
+X^Ty
+-
+y^TX
+\Sigma^*
+X^Ty=
+$
+
+$=\beta^T\Sigma^{-1}\beta
++\beta^TX^TX\beta
+-2\beta^T\Sigma^{-1}\beta_0
+-2\beta^TX^Ty
++ $
+\nopagebreak
+
+
+$2b+\beta_0^T\Sigma^{-1}\beta_0+y^Ty=
+$
+
+$=y^Ty-2y^TX\beta+\beta^TX^TX\beta
++\beta^T\Sigma^{-1}\beta-2\beta_0^T\Sigma^{-1}\beta
++\beta_0^T\Sigma^{-1}\beta_0+2b$ 
+\end{pproof}
+
+\begin{definice}[Multivariate student]
+$$\St(x|\mu,\Lambda,v)=\frac{\Gamma(|x|/2+v/2)}{\Gamma(v/2)}\frac{|\Lambda|^{\frac{1}{2}}}{(\pi v)^{|x|/2}}
+\left[1+
+\frac{((x-\mu)^T\Lambda(x-\mu))^2}{v}\right]^{-|x|/2-v/2}$$
+\end{definice}
+
+\begin{lemma}
+\label{nedodelany_integral}
+$$\int\NoG\left(\lambda,w|\mu,\Sigma,a,b\right) d (\lambda,w)=\int \St\left(w|\mu_0,l\left(\Sigma^{-1}\right),v\right)$$
+
+kde $l=a/b,v=2a$
+
+\end{lemma}
+
+\begin{pproof}
+\item $\int\NoG\left(\lambda,w|\mu_0,\Sigma_0,a,b\right) d (\lambda,w) = $
+
+$=\int\int (2\pi)^{-\frac{\left|w\right|}{2}} 
+\left|\Sigma_0\right|^{-\frac{1}{2}}
+\lambda^{\frac{\left|w\right|}{2}} \exp\left(-\frac{1}{2}\lambda\left(\left(w-\mu_0\right)^T \Sigma_0^{-1}\left(w- \mu_0\right)+2b\right)\right)\frac{1}{\Gamma(a)} b^a \lambda^{a-1}d\lambda  dw=$
+
+$= \int(2\pi)^{-\frac{\left|w\right|}{2}}  \left|\Sigma_0\right|^{-\frac{1}{2}}
+\frac{1}{\Gamma(a)} b^a
+\int
+\lambda^{\frac{\left|w\right|}{2}} \exp\left(-\frac{1}{2}\lambda\left(\left(w-\mu_0\right)^T \Sigma_0^{-1}\left(w- \mu_0\right)+2b\right)\right) \lambda^{a-1}d\lambda dw$
+
+\item označím 
+$\Delta=\frac{1}{2}\left(\left(w-\mu_0\right)^T \Sigma_0^{-1}\left(w- \mu_0\right)+2b\right), z=\lambda\Delta$
+%, dz=\Delta d \lambda$
+\begin{itemize}
+\item $\int
+\lambda^{\frac{\left|w\right|}{2}+a-1} \exp\left(-\frac{1}{2}\lambda\left(\left(w-\mu_0\right)^T \Sigma_0^{-1}\left(w- \mu_0\right)+2b\right)\right) d\lambda=$
+
+$=\int
+\lambda^{\frac{\left|w\right|}{2}+a-1} \exp\left(-z\right) d\lambda
+=\int
+z^{\frac{\left|w\right|}{2}+a-1} \Delta^{-\left(\frac{\left|w\right|}{2}+a-1\right)}\exp\left(-z\right) d\lambda
+=$
+
+$=
+ \Delta^{-\left(\frac{\left|w\right|}{2}+a-1\right)}
+\int
+z^{\frac{\left|w\right|}{2}+a-1}
+\exp\left(-z\right) d\lambda=
+ \Delta^{-\left(\frac{\left|w\right|}{2}+a-1\right)}
+\int
+z^{\frac{\left|w\right|}{2}+a-1}
+\exp\left(-z\right)\Delta^{-1} dz=
+$
+
+$=
+ \Delta^{-\left(\frac{\left|w\right|}{2}+a\right)}
+\int
+z^{\frac{\left|w\right|}{2}+a-1}
+\exp\left(-z\right) dz= \Delta^{-\left(\frac{\left|w\right|}{2}+a\right)}
+\Gamma\left(\frac{\left|w\right|}{2}+a\right)
+$
+\end{itemize}
+
+\item$= \int(2\pi)^{-\frac{\left|w\right|}{2}}  \left|\Sigma_0\right|^{-\frac{1}{2}}
+\frac{1}{\Gamma(a)} b^a
+\Delta^{-\left(\frac{\left|w\right|}{2}+a\right)}
+\Gamma\left(\frac{\left|w\right|}{2}+a\right) dw$
+
+%\item označím $v=2a, l=a/b$
+%\item 
+$=\int(2\pi)^{-\frac{\left|w\right|}{2}}  \left|\Sigma_0\right|^{-\frac{1}{2}}
+\frac{1}{\Gamma(v/2)} \left(\frac{v}{2l}\right)^{v/2}
+\left(\frac{v}{2l}+\frac{1}{2}\left(\left(w-\mu_0\right)^T \Sigma_0^{-1}\left(w- \mu_0\right)\right)\right)^{-\left(\frac{\left|w\right|}{2}+v/2\right)}\cdot$
+\nopagebreak
+
+$\cdot\Gamma\left(\frac{\left|w\right|+v}{2}\right) dw=$
+
+$=\int(2\pi)^{-\frac{\left|w\right|}{2}}  \left|\Sigma_0\right|^{-\frac{1}{2}}
+\frac{1}{\Gamma(v/2)} \left(\frac{v}{2l}\right)^{v/2}
+\left(\frac{v}{2l}\right)^{-\left(\frac{\left|w\right|}{2}+v/2\right)}\cdot$
+\nopagebreak
+
+$\cdot\left(1+\frac{l}{v}\left(\left(w-\mu_0\right)^T \Sigma_0^{-1}\left(w- \mu_0\right)\right)\right)^{-\left(\frac{\left|w\right|}{2}+v/2\right)}\Gamma\left(\frac{\left|w\right|+v}{2}\right) dw=$
+
+$=\int(2\pi)^{-\frac{\left|w\right|}{2}}  \left|\Sigma_0\right|^{-\frac{1}{2}}
+\frac{1}{\Gamma(v/2)} 
+\left(\frac{v}{2l}\right)^{-\frac{\left|w\right|}{2}}\cdot$
+\nopagebreak
+
+$\cdot\left(1+\frac{l}{v}\left(\left(w-\mu_0\right)^T \Sigma_0^{-1}\left(w- \mu_0\right)\right)\right)^{-\left(\frac{\left|w\right|}{2}+v/2\right)}\Gamma\left(\frac{\left|w\right|+v}{2}\right) dw=$
+
+$=\int\frac{\Gamma\left(\frac{\left|w\right|+v}{2}\right)}{\Gamma(v/2)} 
+\frac{ \left|l^{-1}\Sigma_0\right|^{-\frac{1}{2}}}{(v\pi)^{1/2}}
+\left(\frac{v}{2l}\right)^{-\frac{\left|w\right|}{2}}\cdot$
+\nopagebreak
+
+$\cdot\left(1+\frac{1}{v}\left(\left(w-\mu_0\right)^T (l^{-1}\Sigma_0)^{-1}\left(w- \mu_0\right)\right)\right)^{-\left(\frac{\left|w\right|}{2}+v/2\right)} dw=\int\St\left(w|\mu_0,l\left(\Sigma_0^{-1}\right),v\right)dw$
+
+\end{pproof}
+
+\begin{comment}
+\begin{lemma}[Marginál Normal-Gammy]
+$$\int\NoG(w,\lambda|\mu_0,\Sigma_0,a,b) d \lambda = \St(x|\mu,???,???)$$
+\end{lemma}
+\begin{pproof}
+\item $k=|w|$
+\item $\int\NoG(w,\lambda|\mu_0,\Sigma,a,b) d \lambda = \int \NN(w|\mu_0,\lambda^{-1}\Sigma)\cdot\Gam(\lambda|a,b)dt =$
+
+$= \int \left(2\pi\right)^{-\frac{k}{2}}|\lambda^{-1}\Sigma|^{-\frac{1}{2}}\exp\left(-\frac{1}{2}\left(\left(x-\mu\right)^T\lambda^{-1}
+\Sigma\left(x-\mu
+\right)\right)\right)
+ \frac{1}{\Gamma(a)} b^a \lambda^{a-1}\exp(-b\lambda) dt=
+$
+
+$= \int \left(2\pi\right)^{-\frac{k}{2}}\lambda^{-k}|\Sigma|^{-\frac{1}{2}}\exp\left(-\frac{1}{2}\lambda^{-1}\left(\left(x-\mu\right)^T
+\Sigma\left(x-\mu
+\right)\right)\right)
+ \frac{1}{\Gamma(a)} b^a \lambda^{a-1}\exp(-b\lambda) dt=
+$
+
+$= \left(2\pi\right)^{-\frac{k}{2}}\lambda^{-k}|\Sigma|^{-\frac{1}{2}} \frac{b^a}{\Gamma(a)} \int \exp\left(-\frac{1}{2}\lambda^{-1}\left(\left(x-\mu\right)^T
+\Sigma\left(x-\mu
+\right)\right)\right)
+   \lambda^{a-1}\exp(-b\lambda) dt=
+$
+
+\end{pproof}
+
+\end{comment}
+
+\subsection{Definice problému}
+
+
+\begin{definice}[Model regrese se známou $\sigma^2$]
+\label{defmodel_2}
+\end{definice}
+\begin{itemize}
+\item Jedná se přesně o stejnou defici, jako Definice~\ref{defmodel}, jen platí, že \textbf{neznáme} $\sigma^2$ (ale pořád předpokládáme, že nějaká existuje) a \textbf{změníme} priorní distribuci na $w$
+
+\item Dále si dáme na $\sigma^2$ a $w$ prior tak, že $(w,\lambda) \sim \NoG(\mu_0,\Sigma_0,a,b)$ a $\lambda = \sigma^{-2}$, kde dáme konstanty $\mu_0,\Sigma_0,a,b$
+\item Tj. konstanty jsou $\mu_0, \Sigma_0, a,b,\{\phi_i\},$ chápu to opět vše jako součást modelu $R$.
+\end{itemize}
+
+\subsection{Prediktivní distribuce}
+\begin{itemize}
+\item Opět. Hlavní, co chceme zjistit, je prediktivní distrubuce. Tj. $$p(y_{new}|y_{old},x_{old},x_{new},R),$$ přičemž $R$ budu opět vynechávat
+\end{itemize}
+
+
+\begin{lemma}[Přepis na marginál]
+\label{prepis_na_marginal_2}
+$$p(y_{new}|y_{old},x_{old},x_{new})=\int p(y_{new}|w,\lambda,x_{new})p(w, \lambda|y_{old},x_{old})d(w,\lambda)$$
+\end{lemma}
+
+Pozn.: Nejsem si jist, zda je takovýto zápis integrálu vůbec legální, doufám, že ano. Pokud ne, tak si v duchu představte vektor $(w,\lambda)$ jako novou proměnnou.
+
+\begin{pproof}
+\item Totéž jako u Lemmatu~\ref{prepis_na_marginal}.
+\end{pproof}
+
+
+\begin{lemma}[Přepis posterioru]
+\label{prepis_2}
+$$p(w,\lambda|y_{old},x_{old})\propto p(w,\lambda)p(y_{old}|x_{old},w,\lambda)$$
+
+\end{lemma}
+\begin{pproof}
+\item Totéž, co Lemma~\ref{prepis}
+\end{pproof}
+
+
+\begin{lemma}[Likelihood]
+\label{likelihood_2}
+$$y_{new}|w,\lambda,x_{new}\sim\NN(\Phi_{new}w,\lambda^{-1}I),$$ kde $I$ je jednotková matice.
+% a $f(x)$ je vektor $\left(f\left(x_1\right),f\left(x_2\right),...,\\f\left(x_{\left|x\right|}\right)\right)^T$.
+ Podobně $y_{old}|w,\lambda,x_{old}\sim\NN(\Phi_{old}w,\lambda^{-1}I)$\end{lemma}
+
+\begin{pproof}
+\item Totéž co Lemma \ref{likelihood}
+\end{pproof}
+
+\begin{lemma}
+\label{log_likelihood_2}
+$$\ln(p(y_{old}|w,\lambda,x_{old}))=\lambda^{\frac{\left|y_{old}\right|}{2}}\left(-\frac{1}{2}\lambda
+\left(y_{old}-\Phi _{old}w\right)^T\left(y_{old}-\Phi _{old}w\right)\right)+c,$$
+kde $\lambda$ nebereme jako konstantu
+\end{lemma}
+
+\begin{pproof}
+\item Víceméně totéž, co v první odrážce důkazu Lemma~\ref{normalgammalog}
+\end{pproof}
+
+\begin{lemma}[Výpočet posterioru]
+\label{vypocet_posterior_2}
+$w,\lambda|y_{old},x_{old} \sim \NoG(\hat{w},\hat{\Sigma},\hat{a},\hat{b}),$ kde
+
+\begin{align*}
+\hat{w} &= (\Sigma_0^{-1}+\Phi _{old}^T\Phi _{old})^{-1}(\Sigma_0^{-1}\mu_0+\Phi _{old}^Ty_{old}) \\
+\hat{\Sigma} &= (\Sigma_0^{-1}+\Phi _{old}^T\Phi _{old})^{-1} \\
+\hat{b} &= b+\frac{1}{2}(\mu_0^T\Sigma_0^{-1}\mu_0+y_{old}^Ty_{old}
+-\hat{w}^T\hat{\Sigma}^{-1}\hat{w})\\
+\hat{a} &= a+\frac{1}{2}\left|y_{old}\right|
+\end{align*}
+
+\end{lemma}
+
+\begin{pproof}
+\item Podle Lemmatu~\ref{prepis_2} víme, že $p(w,\lambda|y_{old},x_{old})\propto p(w,\lambda)p(y_{old}|x_{old},w,\lambda)$
+ 
+\item Podle Definice~\ref{defmodel_2} $w,\lambda\sim\NoG(\mu_0,\Sigma_0,a,b)$ 
+\item $\ln p(w,\lambda)=
+\ln\left(\lambda^{a+\frac{\left|w\right|-2}{2}}\right)
+\left(-\frac{1}{2}\lambda\left(\left(w-\mu_0\right)^T \Sigma_0^{-1}\left(w- \mu_0\right)+2b\right)\right)+c$ podle Lemma~\ref{normalgammalog} 
+
+\item Podle Lemma~\ref{log_likelihood_2} $\ln(p(y_{old}|w,\lambda,x_{old}))=\lambda^{\frac{\left|y_{old}\right|}{2}}\left(-\frac{1}{2}\lambda
+\left(y_{old}-\Phi _{old}w\right)^T\left(y_{old}-\Phi _{old}w\right)\right)+c$
+
+\item $\ln p(w,\lambda|y_{old},x_{old})=
+\ln\left(\lambda^{a+\frac{\left|w\right|+\left|y_{old}\right|-2}{2}}\right)\cdot$
+
+\nopagebreak
+
+$\cdot\left(-\frac{1}{2}\lambda\left(\left(w-\mu_0\right)^T \Sigma_0^{-1}\left(w- \mu_0\right)+\left(y_{old}-\Phi _{old}w\right)^T\left(y_{old}-\Phi _{old}w\right)+2b\right)\right)+c
+$
+
+\item Použiji Lemma~\ref{pozdefpoc} a jednoduchou úpravu exponentu $\lambda$
+
+\item $\ln p(w,\lambda|y_{old},x_{old})=
+\ln\left(\lambda^{\hat{a}+\frac{\left|w\right|-2}{2}}\right) \left(-\frac{1}{2}\lambda\left(\left(w-\hat{w}\right)^T {\hat{\Sigma}}^{-1}\left(w- \hat{w}\right)+2\hat{b}\right)\right)+c
+$
+\item Podle Lemmatu~\ref{normalgammalog} jde o dané $\NoG$.
+\end{pproof}
+
+\begin{veta}[Predictive nedopočítaný]
+$$p(y_{new}|y_{old},x_{old},x_{new})\propto\int\St\left(w|\breve w,\breve l\left(\breve \Sigma^{-1}\right),\breve v\right) dw,$$
+kde 
+\begin{align*}
+\breve{w} &= (\hat \Sigma^{-1}+\Phi _{new}^T\Phi _{new})^{-1}(\hat \Sigma^{-1}\hat w+\Phi _{new}^Ty_{new}) \\
+\breve{\Sigma} &= (\hat \Sigma^{-1}+\Phi _{new}^T\Phi _{new})^{-1} \\
+\breve{b} &= \hat b+\frac{1}{2}(\hat w^T\hat \Sigma_0^{-1}\hat w+y_{new}^Ty_{new}
+-\breve{w}^T\breve{\Sigma}^{-1}\breve{w})\\
+\breve{a} &= \hat a+\frac{1}{2}\left|y_{new}\right|\\
+\breve l &= \breve a / \breve b \\
+\breve v  &= 2 \breve a
+\end{align*}
+
+\end{veta}
+
+Nedokázal jsem, bohužel, dopočítat tenhle integrál do konce.
+
+Bishop uvádí, že konečný integrál je studentovo rozdělení, ale neuvádí výpočet a nechává ho jako cvičení. Je možné, že mám někde ve výpočtu chybu - ať numerickou nebo logickou; nebo jsem Bishopa špatně pochopil; nebo jenom neumím integrovat studentovo rozdělení.
+
+Proto to takhle nechám, protože nevím, co s tím dál. Ještě důkaz.
+
+\begin{pproof}
+\item Podle Lemmatu~\ref{prepis_na_marginal_2} víme, že 
+
+$p(y_{new}|y_{old},x_{old},x_{new})=\int p(y_{new}|w,\lambda,x_{new})p(w, \lambda|y_{old},x_{old})d(w,\lambda)$
+\item Podle Lemmatu~\ref{likelihood_2} víme, že $y_{new}|w,\lambda,x_{new}\sim\NN(\Phi_{new}w,\lambda^{-1}I)$
+\item Podle Lemmatu~\ref{vypocet_posterior_2} víme, že $w|y_{old},x_{old} \sim \NoG(\hat{w},\hat{\Sigma},\hat{a},\hat{b})$
+\item Tedy počítám $\int \NN\left(y_{new}|\Phi_{new}w,\lambda^{-1}I\right) \NoG\left(w,\lambda|\hat{w},\hat{\Sigma},\hat{a},\hat{b}\right) d\left(w,\lambda\right)=$
+
+
+
+
+ $=\int \NN\left(y_{new}|\Phi_{new}w,\lambda^{-1}I\right) \NN\left(w|\hat{w},\lambda^{-1}\hat{\Sigma}\right) \Gam\left(\lambda|\hat{a},\hat{b}\right) d\left(w,\lambda\right)=$
+
+$= \int 2\pi^{-\left|y_{new}\right|/2}\left|\lambda^{-1}I\right|^{-1}
+\exp\left(-\frac{1}{2}\lambda\left(y_{new}-\Phi_{new}w\right)^T
+\left(y_{new}-\Phi_{new}w\right)\right)\cdot$
+
+\nopagebreak
+
+$\cdot 2\pi^{-\left|w\right|/2} \left|\lambda^{-1}\hat{\Sigma}\right|^{-1}
+\exp\left(-\frac{1}{2}\lambda(w-\hat{w})^T\hat{\Sigma}
+\left(w-\hat{w}\right)\right) \lambda^{\hat a-1}\exp\left (-\hat b \lambda\right ) d \left(w,\lambda\right)=$
+
+
+$= 2\pi^{-\left|y_{new}\right|/2}  2\pi^{-\left|w\right|/2}  \frac{1}{\Gamma(\hat a)}  \hat b^{\hat a} \cdot$
+\nopagebreak
+
+$\int \lambda^{\left|y_{new}\right|/2+\left|w\right|/2+\hat{a}-1}\cdot$
+\nopagebreak
+
+$\exp\left(-\frac{1}{2}\lambda\left(\left(y_{new}-\Phi_{new}w\right)^T
+\left(y_{new}-\Phi_{new}w\right)
++\left(w-\hat{w}\right)^T\hat{\Sigma}
+\left(w-\hat{w}\right)+2\hat{b}
+\right)\right)d(w,\lambda) \propto$
+
+$\propto \int \lambda^{\left|y_{new}\right|/2+\left|w\right|/2+\hat{a}-1}\cdot$
+\nopagebreak
+
+$\exp\left(-\frac{1}{2}\lambda\left(\left(y_{new}-\Phi_{new}w\right)^T
+\left(y_{new}-\Phi_{new}w\right)
++\left(w-\hat{w}\right)^T\hat{\Sigma}
+\left(w-\hat{w}\right)+2\hat{b}
+\right)\right)d(w,\lambda)$
+
+
+\item použijeme Lemma~\ref{pozdefpoc}
+
+\item $...=\int \lambda^{\breve{a}+\frac{|w|}{2}}
+\exp \left(-\frac{1}{2}\lambda\left(\left(w-\breve{w}\right)^T {\breve{\Sigma}}^{-1}\left(w- \breve{w}\right)+2\breve{b}\right)\right)d(w,\lambda)=$
+
+$=\int\NoG\left(\lambda,w|\breve w, \breve \Sigma, \breve a, \breve b\right)d(w,\lambda)$
+
+\item Použijeme Lemma \ref{nedodelany_integral}.
+
+
+\end{pproof}
+
+\section{Zdroje}
+\begin{itemize}
+\item Bishop, Christopher M., and Nasser M. Nasrabadi. Pattern recognition and machine learning. Vol. 1. New York: springer, 2006.
+\item
+The Bayesian Linear Model with unknown
+Variance, Simon Kunz \url{http://www.biostat.uzh.ch/teaching/master/previous/seminarbayes/SimonKunz_article.pdf.}
+
+\item články na anglické wikipedii
+\end{itemize}
+\end{document}
+
